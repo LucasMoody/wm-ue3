@@ -1,10 +1,9 @@
 var request = require('request');
 var cheerio = require('cheerio');
 
-// Scrap italian receipts
-var startpage = 0;
+// Scrape italian receipts
 var scrape = function(){
-    
+    var startpage = 0;
 // loop iterates over 15 pages and each page has 30 receipts
 for(var i =0; i<15;i++){
    
@@ -33,4 +32,24 @@ for(var i =0; i<15;i++){
      startpage+=30;
     }   
 }
-scrape();
+
+// Get the instruction text from the URLs (receipt)
+var getContent = function(url){
+    
+     request(url, function(err, resp, body){
+     $ = cheerio.load(body);
+     $('.instructions').filter(function(){
+          var text = $(this).text();
+          console.log(text);
+     });
+    });
+}
+
+//scrape();
+//getContent("http://www.chefkoch.de/rezepte/889601194503872/Knusprig-duenne-Pizza-mit-Chorizo-und-Mozzarella.html");
+
+
+
+
+
+

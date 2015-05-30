@@ -1,12 +1,46 @@
-// Stoppwort-Filterung und Stemming
-// Wenden Sie auf die Liste von Wörtern Stoppwort-Filterung und Stemming an. Beachten Sie zu Stemming die Hinweise am Ende.
+exports.prepareDocuments = function(){
+    
+    // [{text:"<html>...", label:TRUE}, {text:...}]
+    var htmlDocuments = retrieveFromDb();
+    // [{text:"the peter pan", label:TRUE}, {text:...}]
+    var documents = getRecipeBodyText(htmlDocuments);
+    // [{text:"the peter pan", label:TRUE}, {text:...}]
+    var documents = getRecipeDivText(htmlDocuments); //alternativ
+    // [{words:["the", peter", "pan"], label:TRUE}, {words:...}]
+    var docWordLists = documentToWordList(documents);
+    // [{words:"peter", "pan"], label:TRUE}, {words:...}]
+    docWordLists = stemAndStop(docWordLists);
+    
+    var randomSelection = selectTestTrainRandom(docWordLists);
+    // [{words:"peter", "pan"], label:TRUE}, {words:...}]
+    var trainDocWordLists = randomSelection.train;
+    // [{words:"peter", "pan"], label:TRUE}, {words:...}]
+    var testDocWordLists = randomSelection.test;
+    
+    var tfidfResult = calcTfIdf(trainDocWordLists, testDocWordLists);
+    // [{vec:{"peter":0.4, "pan":0.7}, label:TRUE}, {vec:...}]
+    var trainFeatureVectors = tfidfResult.train;
+    // [{vec:{"peter":0.4, "pan":0.7}, label:TRUE}, {vec:...}]
+    var testFeatureVectors = tfidfResult.test;
+    
+    var featureSelectionResult = selectFeatures(trainFeatureVectors, testFeatureVectors);
+    // [{vec:{"pan":0.7, "peter":0.4}, label:TRUE}, {vec:...}]
+    trainFeatureVectors = featureSelectionResult.train;
+    // [{vec:{"pan":0.7, "peter":0.4}, label:TRUE}, {vec:...}]
+    testFeatureVectors = featureSelectionResult.test;
+    
+    // Die Featurevektoren sind nun nach tfidf Relevanz absteigend sortiert, d.h.
+    // alle Vektoren enthalten die gleichen Attribute in der gleichen Reihenfolge
+    
+    var trainFeatureSparse = saveSparse(trainFeatureVectors);
+    var testFeatureSparse = saveSparse(testFeatureVectors);
+    
+    return {train:trainFeatureSparse, test:testFeatureSparse};
+}
 
-// Wort-Liste zu TF-IDF-Vektor
-// Wählen Sie als Menge der Terme alle Wörter, die in den Wort-Listen des Trainingssets auftauchen. Bilden Sie für jedes Dokument den TF-IDF-Vektor, indem Sie für jeden Term seine relative Häufigkeit innerhalb des Dokuments (TF) mit seiner logarithmierten inversen Document Frequency (IDF) multiplizieren (siehe Folien).
-// Hinweis: Sowohl die Definition der Termmenge als auch die IDF-Werte werden allein anhand des Trainingssets erstellt und beim Testen wiederverwendet. Denn abgesehen von der konkreten Testinstanz sollen keine Informationen aus dem Testset in die Klassifikation einfließen.
+function retrieveFromDb(){
 
-// Einfache Feature-Selection
-// Ihr Programm sollte in der Lage sein, die relevantesten N Wörter (Features) zu selektieren. Sortieren sie dabei einfach die Wörter nach ihrer Dokumenthäufigkeit im Trainingsset und behalten sie die N häufigsten. 
+}
 
 function getRecipeDivText(htmlDocuments) {
     
@@ -20,17 +54,117 @@ function documentToWordList(){
     
 }
 
-
-function retrieveFromDb(){
-    
-    return // [{url:"xxx", text:"yyy", italian:"TRUE"}]
-}
-
-exports.prepareDocuments = function(){
-    var htmlDocuments = retrieveFromDb();
-    var documents = getRecipeBodyText(htmlDocuments);
-    var documents = getRecipeDivText(htmlDocuments); //alternativ
+function stemAndStop(documents){
     
 }
 
-function
+function selectTestTrainRandom(docWordLists){
+    
+}
+
+function calcTfIdf(trainDocs, testDocs){
+    
+    ///////////////////////////////////////////////
+    // Calculate training data and save idf-Object
+    ///////////////////////////////////////////////
+    var tfTrainArray = Array();
+    var idfObject = {};
+    // Iterate through all documents
+    for(var i=0; i<trainDocs.length; i++){
+        var tf = {};
+        var wordlist = trainDocs.words;
+        // Iterate through all words in one document
+        for(var j=0; j<wordlist.length; j++){
+            // Update absolute term frequency
+            if(tf.hasOwnProperty(wordlist[j])){
+                tf[wordlist[j]] = tf[wordlist[j]] + 1;
+            } else{
+                tf[wordlist[j]] = 1;
+            }
+        }
+        tfTrainArray.push(tf);
+        // Iterate through all terms in one document
+        for(var k=0, keys=Object.keys(tf); k<keys.length; k++){
+            // Update document frequencies
+            if(idfObject.hasOwnProperty(tf[keys[k]])){
+                idfObject[tf[keys[k]]] = idfObject[tf[keys[k]]] + 1;
+            } else{
+                idfObject[tf[keys[k]]] = 1;
+            }
+            // Save realtive frequency for each term
+            tf[keys[k]] = tf[keys[k]] / wordlist.length;
+        }
+    }
+    // Iterate through all df terms and make them idf
+    for(var l=0, keys=Object.keys(idfObject); l<keys.length; l++){
+        // Save logarithmic inverted document frequency
+        idfObject[keys[k]] = Math.log( (trainDocs.length / idfObject[keys[k]]) );
+    }
+    
+    // Calculate and save the tfidf value for every term
+    var tfIdfTrainArray = Array();
+    for(var m=0; m<tfTrainArray.length; m++){
+        var tfidf = {};
+        for(var n=0, keys=Object.keys(tfTrainArray[m]); n<keys.length; n++){
+            tfidf[tfTrainArray[m][keys[n]]] = tfTrainArray[m][keys[n]] * idfObject[keys[n]];
+        }
+        tfIdfTrainArray.push(tfidf);
+    }
+    
+    /////////////////////////
+    // Calculate test data
+    /////////////////////////
+    
+    var tfTestArray = Array();
+    
+    for(var i=0; i<testDocs.length; i++){
+        var tf = {};
+        wordlist = testDocs.words;
+        // Iterate through all words in one document
+        for(var j=0; j<wordlist.length; j++){
+            // Update absolute term frequency
+            if(tf.hasOwnProperty(wordlist[j])){
+                tf[wordlist[j]] = tf[wordlist[j]] + 1;
+            } else{
+                tf[wordlist[j]] = 1;
+            }
+        }
+        tfTestArray.push(tf);
+    }
+    
+    var tfIdfTestArray = Array();
+    
+    for(var m=0; m<tfTestArray.length; m++){
+        var tfidf = {};
+        for(var n=0, keys=Object.keys(tfTestArray[m]); n<keys.length; n++){
+            tfidf[tfTestArray[m][keys[n]]] = tfTestArray[m][keys[n]] * idfObject[keys[n]];
+        }
+        tfIdfTestArray.push(tfidf);
+    }
+    
+    /////////////////////////////////
+    // Concatenate the result object
+    ////////////////////////////////
+    
+    var trainRes = Array();
+    var testRes = Array();
+    
+    for(var p=0; p<trainDocs.length; p++){
+        trainRes.push({vec:tfIdfTrainArray[p], label:trainDocs[p].label});
+    }
+    for(var q=0; p<testDocs.length; p++){
+        testRes.push({vec:tfIdfTestArray[p], label:testDocs[p].label});
+    }
+    
+    return {train:trainRes, test:testRes};
+}
+
+
+
+function selectFeatures(trainFeatureVectors, testFeatureVectors){
+    
+}
+
+function saveSparse(featureVector){
+    
+}

@@ -8,11 +8,8 @@ function scrapeSmall(url,amount){
          if(!err){
      $ = cheerio.load(body);
      
-     $('span.rating-small').each(function(index){
-       var a = $(this).prev().attr('href');
-       if(a===undefined){
-           var a = $(this).prev().prev().attr('href');
-       }
+     $('.rowclick').each(function(index){
+     var a = $(this).attr('data-url');
        var urlIntern = "http://chefkoch.de"+a;
        if((index<amount) && (urlIntern!="http://chefkoch.deundefined")){
            console.log(urlIntern);
@@ -32,23 +29,14 @@ function scrapeChefkoch(url,max){
              
      $ = cheerio.load(body);
      
-     $('span.rating-small').each(function(index){
-       var a = $(this).prev().attr('href');
-       if(a===undefined){
-            var a = $(this).prev().prev().attr('href');
-       }
-       
-       
-       var urlIntern = "http://chefkoch.de"+a;
-      
-      // How to trade an undefined link?
-      if(urlIntern==="http://chefkoch.deundefined"){
-          console.log("The link was undefined");
-      }else{
+     $('.rowclick').each(function(index){
+      var a = $(this).attr('data-url');
+      var urlIntern = "http://chefkoch.de"+a;
+
              console.log(urlIntern);
            // insert into mongoDB here
            //  exports.storeWebpageSync("http://chefkoch.de"+ a,);
-          }
+          
      });
          }
     });

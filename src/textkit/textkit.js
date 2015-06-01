@@ -23,7 +23,9 @@ exports.prepareDocuments = function(){
     // [{vec:{"peter":0.4, "pan":0.7}, label:TRUE}, {vec:...}]
     var testFeatureVectors = tfidfResult.test;
     
-    var featureSelectionResult = selectFeatures(trainFeatureVectors, testFeatureVectors);
+    var dfObject = tfidfResult.df;
+    
+    var featureSelectionResult = selectFeatures(trainFeatureVectors, testFeatureVectors, dfObject, 50);
     // [{vec:{"pan":0.7, "peter":0.4}, label:TRUE}, {vec:...}]
     trainFeatureVectors = featureSelectionResult.train;
     // [{vec:{"pan":0.7, "peter":0.4}, label:TRUE}, {vec:...}]
@@ -95,6 +97,8 @@ function calcTfIdf(trainDocs, testDocs){
             tf[keys[k]] = tf[keys[k]] / wordlist.length;
         }
     }
+    // Save df Object before making it idf
+    var dfObjRes = idfObject;
     // Iterate through all df terms and make them idf
     for(var l=0, keys=Object.keys(idfObject); l<keys.length; l++){
         // Save logarithmic inverted document frequency
@@ -150,21 +154,61 @@ function calcTfIdf(trainDocs, testDocs){
     var testRes = Array();
     
     for(var p=0; p<trainDocs.length; p++){
-        trainRes.push({vec:tfIdfTrainArray[p], label:trainDocs[p].label});
+        trainRes.push({'vec':tfIdfTrainArray[p], 'label':trainDocs[p].label});
     }
     for(var q=0; p<testDocs.length; p++){
-        testRes.push({vec:tfIdfTestArray[p], label:testDocs[p].label});
+        testRes.push({'vec':tfIdfTestArray[p], 'label':testDocs[p].label});
     }
     
-    return {train:trainRes, test:testRes};
+    return {'train':trainRes, 'test':testRes, 'df':dfObjRes};
 }
 
-
-
-function selectFeatures(trainFeatureVectors, testFeatureVectors){
+// Ihr Programm sollte in der Lage sein, die relevantesten N Wörter (Features) zu selektieren. 
+// Sortieren sie dabei einfach die Wörter nach ihrer Dokumenthäufigkeit im Trainingsset 
+// und behalten sie die N häufigsten. 
+function selectFeatures(trainFeatureVectors, testFeatureVectors, df, n){
+    // Sort words in trainingSet according to document frequency
+    var keysSorted = Object.keys(df).sort(function(a,b){return df[b]-df[a]});
     
+    var trainRes = Array();
+    var testRes = Array();
+    // Save the training feature vectors with these keys
+    for(var i=0; i<trainFeatureVectors.length; i++){
+        var trainInstance = {};
+        for(var j=0; j<n; j++){
+            if(trainFeatureVectors[i].vec.hasOwnProperty(keysSorted[j])){
+                trainInstance[keysSorted[j]] = trainFeatureVectors[i].vec[keysSorted[j]];
+            } else {
+                trainInstance[keysSorted[j]] = 0;
+            }
+        }
+        console.log(trainInstance);
+        trainRes.push({'vec':trainInstance, 'label':trainFeatureVectors[i].label});
+    }
+    // Save the test feature vectors with these keys
+    for(var i=0; i<testFeatureVectors.length; i++){
+        var testInstance = {};
+        for(var j=0; j<n; j++){
+            if(testFeatureVectors[i].hasOwnProperty(keysSorted[j])){
+                testInstance[keysSorted[j]] = trainFeatureVectors[i].vec[keysSorted[j]];
+            } else {
+                testInstance[keysSorted[j]] = 0;
+            }
+        }
+        testRes.push({'vec':testInstance, 'label':testFeatureVectors[i].label});
+    }
+    // Concatenate result
+    return {train:trainRes, test:testRes};
 }
 
 function saveSparse(featureVector){
     
 }
+
+// Short test for select features
+// var train = [{vec:{"peter":0.4, "pan":0.7}, label:true}];
+// var test = [{vec:{"peter":0.4, "pan":0.7}, label:true}];
+// var df = {"peter":0.8, "pan":0.6};
+
+// var res =selectFeatures(train, test, df, 1);
+// console.log(res.train[0].vec);

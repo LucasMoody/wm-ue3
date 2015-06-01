@@ -11,8 +11,10 @@ function scrapeSmall(url,amount){
      $('.rowclick').each(function(index){
      var a = $(this).attr('data-url');
        var urlIntern = "http://chefkoch.de"+a;
-       if((index<amount) && (urlIntern!="http://chefkoch.deundefined")){
+       if(index<amount){
            console.log(urlIntern);
+         
+           //console.log(getContent(urlIntern));
            //insert into mongoDB here
        }
     
@@ -73,18 +75,22 @@ function scrapeAll(startURL,amount){
 }
 
 // Get the instruction text from the URLs (receipt)
+// Problem: Can only print the output but can't handle to implement a return statement...
 function getContent(url){
-    
-     request(url, function(err, resp, body){
+     
+     request(url,function(err, resp, body){
          if(!err){
      $ = cheerio.load(body);
+    
      $('.instructions').filter(function(){
-          var text = $(this).text();
-          console.log(text);
+         
+         var output = $(this).text().trim();
+         console.log(output);
+        
      });
          }
     });
-         
+
 }
 
 
@@ -93,7 +99,7 @@ function getContent(url){
 // Call functions
 
 // Italian 500
-scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",500);
+//scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",500);
 
 // International
 // Afrika 100
@@ -112,7 +118,8 @@ scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",500);
 //scrapeAll("http://www.chefkoch.de/rs/s0t145/Australien-Rezepte.html",100);
 
 
-//getContent("http://www.chefkoch.de/rezepte/889601194503872/Knusprig-duenne-Pizza-mit-Chorizo-und-Mozzarella.html");
+getContent("http://www.chefkoch.de/rezepte/889601194503872/Knusprig-duenne-Pizza-mit-Chorizo-und-Mozzarella.html");
+
 
 
 

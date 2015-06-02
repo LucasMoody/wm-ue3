@@ -9,8 +9,8 @@ db.on('error', console.error.bind(console, 'MongoDB Connection Error:'));
       console.log("Connected to mongoDB!");
 });
 
-exports.storeWebpage = function(url, text, italian, callback){
-    var newPage = new Webpage({ url:url, text:text, italian : italian});
+exports.storeWebpage = function(siteInfo, callback){
+    var newPage = new Webpage(siteInfo);
     newPage.save(function (err, res) {
         if (err) {
             callback(err, false);

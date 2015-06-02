@@ -205,7 +205,65 @@ function selectFeatures(trainFeatureVectors, testFeatureVectors, df, n){
 
 function saveSparse(trainFeatureVectors, testFeatureVectors){
     var trainingWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8'),
-        testWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8');
+        testWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8'),
+        //maps index to a word e.g. money is word with index 10
+        wordIndexMap = {},
+        //start index counter with 0
+        curNumOfIndices = 0;
+        
+    //determine word indices for each word in trainingset
+    trainFeatureVectors.forEach(function(val, idx) {
+        for (var word in val.vec) {
+            if (val.vec.hasOwnProperty(word) && !(word in wordIndexMap)) {
+                wordIndexMap[curNumOfIndices] = word;
+                curNumOfIndices++;
+            }
+        }    
+    });
+    //determine word indices for each word in testset
+    testFeatureVectors.forEach(function(val, idx) {
+        for (var word in val.vec) {
+            if (val.vec.hasOwnProperty(word) && !(word in wordIndexMap)) {
+                wordIndexMap[word] = curNumOfIndices;
+                curNumOfIndices++;
+            }
+        }    
+    });
+    
+    
+    //write training set data to file
+    trainFeatureVectors.forEach(function(val, idx) {
+        if(val.label) {
+            trainingWriteStream.write(1);
+            
+        } else {
+            trainingWriteStream.write(0);
+        }
+        trainingWriteStream.write(" ");
+        for (var index = 0; index<Object.keys(wordIndexMap).length; index++) {
+            if (wordIndexMap[index] in val.vec) {
+                trainingWriteStream.write(index + ":" + val.vec[wordIndexMap[index]] + " ");
+            }
+        }
+        trainingWriteStream.write("\n");
+    });
+    
+    //write test set data to file
+    testFeatureVectors.forEach(function(val, idx) {
+        if(val.label) {
+            testWriteStream.write(1);
+            
+        } else {
+            testWriteStream.write(0);
+        }
+        testWriteStream.write(" ");
+        for (var index = 0; index<Object.keys(wordIndexMap).length; index++) {
+            if (wordIndexMap[index] in val.vec) {
+                testWriteStream.write(index + ":" + val.vec[wordIndexMap[index]] + " ");
+            }
+        }
+        testWriteStream.write("\n");
+    });
 }
 
 // Short test for select features

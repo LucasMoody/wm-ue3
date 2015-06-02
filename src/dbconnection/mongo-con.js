@@ -31,3 +31,7 @@ exports.storeWebpageSync = function(url, text){
         }
     });
 }
+
+exports.getTrainingDocuments = function(callback) {
+    Webpage.find({})
+}

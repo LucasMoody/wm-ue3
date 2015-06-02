@@ -2,11 +2,16 @@ var request = require('request');
 var cheerio = require('cheerio');
 
 // JS Objects
-function Data (url,text) {
+function Data (id,url,text) {
+    this.id=id;
     this.url = url;
     this.text = text;
     this.getURL = getURL;
     this.getText = getText;
+}
+
+function getID(){
+    return this.id;
 }
  
 function getURL() {
@@ -28,7 +33,8 @@ function scrapeSmall(url,amount){
      var a = $(this).attr('data-url');
        var urlIntern = "http://chefkoch.de"+a;
        if(index<amount){
-           var dataset = new Data(urlIntern,getHTML(urlIntern));
+           var dataset = new Data("Italian",urlIntern,getHTML(urlIntern));
+           console.log(dataset.id);
            console.log(dataset.url);
            console.log(dataset.getText());
            //////////////////////////////////
@@ -53,7 +59,8 @@ function scrapeChefkoch(url,max){
       var a = $(this).attr('data-url');
       var urlIntern = "http://chefkoch.de"+a;
 
-            var dataset = new Data(urlIntern,getHTML(urlIntern));
+            var dataset = new Data("Italian",urlIntern,getHTML(urlIntern));
+            console.log(dataset.id);
             console.log(dataset.getURL());
             console.log(dataset.getText());
             /////////////////////////////////
@@ -127,7 +134,7 @@ function getHTML(url){
 
 
 // Italian 500
-//scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",100);
+scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",100);
 
 // International
 // Afrika 100

@@ -1,3 +1,7 @@
+var snowball = require('node-snowball');
+var stop_words=require('multi-stopwords')(['de']);
+var should = require('should');
+
 exports.prepareDocuments = function(){
     
     // [{text:"<html>...", label:TRUE}, {text:...}]
@@ -8,7 +12,7 @@ exports.prepareDocuments = function(){
     var documents = getRecipeDivText(htmlDocuments); //alternativ
     // [{words:["the", peter", "pan"], label:TRUE}, {words:...}]
     var docWordLists = documentToWordList(documents);
-    // [{words:"peter", "pan"], label:TRUE}, {words:...}]
+    // [{words:["peter", "pan"], label:TRUE}, {words:...}]
     docWordLists = stemAndStop(docWordLists);
     
     var randomSelection = selectTestTrainRandom(docWordLists);
@@ -31,13 +35,11 @@ exports.prepareDocuments = function(){
     // [{vec:{"pan":0.7, "peter":0.4}, label:TRUE}, {vec:...}]
     testFeatureVectors = featureSelectionResult.test;
     
-    // Die Featurevektoren sind nun nach tfidf Relevanz absteigend sortiert, d.h.
+    // Die Featurevektoren sind nun nach document frequency absteigend sortiert, d.h.
     // alle Vektoren enthalten die gleichen Attribute in der gleichen Reihenfolge
     
-    var trainFeatureSparse = saveSparse(trainFeatureVectors);
-    var testFeatureSparse = saveSparse(testFeatureVectors);
-    
-    return {train:trainFeatureSparse, test:testFeatureSparse};
+    saveSparse(trainFeatureVectors, testFeatureVectors);
+
 }
 
 function retrieveFromDb(){
@@ -56,8 +58,26 @@ function documentToWordList(){
     
 }
 
+//Wenden Sie auf die Liste von Wörtern Stoppwort-Filterung und Stemming an. 
+//Beachten Sie zu Stemming die Hinweise am Ende. 
 function stemAndStop(documents){
-    
+    var result = Array();
+    // Iterate all documents
+    for(var i=0; i<documents.length; i++){
+        var curWords = documents[i].words;
+        var resWords = Array();
+        // Iterate all words in a document
+        for(var j=0; j<curWords.length; j++){
+            if(stop_words.indexOf(curWords[j]) == -1){
+                //Wort ist kein Stopwort, speichere Wordstamm
+                resWords.push(snowball.stemword(curWords[j], 'german'));
+            } else {
+                //Wort ist ein Stopwort -> wird ignoriert
+            }
+        }
+        result.push({'words':resWords, 'label':documents[i].label});
+    }
+    return result;
 }
 
 function selectTestTrainRandom(docWordLists){
@@ -74,7 +94,7 @@ function calcTfIdf(trainDocs, testDocs){
     // Iterate through all documents
     for(var i=0; i<trainDocs.length; i++){
         var tf = {};
-        var wordlist = trainDocs.words;
+        var wordlist = trainDocs[i].words;
         // Iterate through all words in one document
         for(var j=0; j<wordlist.length; j++){
             // Update absolute term frequency
@@ -88,29 +108,29 @@ function calcTfIdf(trainDocs, testDocs){
         // Iterate through all terms in one document
         for(var k=0, keys=Object.keys(tf); k<keys.length; k++){
             // Update document frequencies
-            if(idfObject.hasOwnProperty(tf[keys[k]])){
-                idfObject[tf[keys[k]]] = idfObject[tf[keys[k]]] + 1;
+            if(idfObject.hasOwnProperty(keys[k])){
+                idfObject[keys[k]] = idfObject[keys[k]] + 1;
             } else{
-                idfObject[tf[keys[k]]] = 1;
+                idfObject[keys[k]] = 1;
             }
             // Save realtive frequency for each term
             tf[keys[k]] = tf[keys[k]] / wordlist.length;
         }
     }
     // Save df Object before making it idf
-    var dfObjRes = idfObject;
+    // http://stackoverflow.com/questions/6089058/nodejs-how-to-clone-a-object
+    var dfObjRes = JSON.parse(JSON.stringify(idfObject));
     // Iterate through all df terms and make them idf
     for(var l=0, keys=Object.keys(idfObject); l<keys.length; l++){
         // Save logarithmic inverted document frequency
-        idfObject[keys[k]] = Math.log( (trainDocs.length / idfObject[keys[k]]) );
+        idfObject[keys[l]] = log(10, (trainDocs.length / idfObject[keys[l]]));
     }
-    
     // Calculate and save the tfidf value for every term
     var tfIdfTrainArray = Array();
     for(var m=0; m<tfTrainArray.length; m++){
         var tfidf = {};
         for(var n=0, keys=Object.keys(tfTrainArray[m]); n<keys.length; n++){
-            tfidf[tfTrainArray[m][keys[n]]] = tfTrainArray[m][keys[n]] * idfObject[keys[n]];
+            tfidf[keys[n]] = tfTrainArray[m][keys[n]] * idfObject[keys[n]];
         }
         tfIdfTrainArray.push(tfidf);
     }
@@ -123,7 +143,7 @@ function calcTfIdf(trainDocs, testDocs){
     
     for(var i=0; i<testDocs.length; i++){
         var tf = {};
-        wordlist = testDocs.words;
+        wordlist = testDocs[i].words;
         // Iterate through all words in one document
         for(var j=0; j<wordlist.length; j++){
             // Update absolute term frequency
@@ -141,7 +161,7 @@ function calcTfIdf(trainDocs, testDocs){
     for(var m=0; m<tfTestArray.length; m++){
         var tfidf = {};
         for(var n=0, keys=Object.keys(tfTestArray[m]); n<keys.length; n++){
-            tfidf[tfTestArray[m][keys[n]]] = tfTestArray[m][keys[n]] * idfObject[keys[n]];
+            tfidf[keys[n]] = tfTestArray[m][keys[n]] * idfObject[keys[n]];
         }
         tfIdfTestArray.push(tfidf);
     }
@@ -156,11 +176,15 @@ function calcTfIdf(trainDocs, testDocs){
     for(var p=0; p<trainDocs.length; p++){
         trainRes.push({'vec':tfIdfTrainArray[p], 'label':trainDocs[p].label});
     }
-    for(var q=0; p<testDocs.length; p++){
-        testRes.push({'vec':tfIdfTestArray[p], 'label':testDocs[p].label});
+    for(var q=0; q<testDocs.length; q++){
+        testRes.push({'vec':tfIdfTestArray[q], 'label':testDocs[q].label});
     }
     
     return {'train':trainRes, 'test':testRes, 'df':dfObjRes};
+}
+
+function log(base, number) {  
+    return Math.log(number) / Math.log(base);  
 }
 
 // Ihr Programm sollte in der Lage sein, die relevantesten N Wörter (Features) zu selektieren. 
@@ -169,27 +193,25 @@ function calcTfIdf(trainDocs, testDocs){
 function selectFeatures(trainFeatureVectors, testFeatureVectors, df, n){
     // Sort words in trainingSet according to document frequency
     var keysSorted = Object.keys(df).sort(function(a,b){return df[b]-df[a]});
-    
     var trainRes = Array();
     var testRes = Array();
     // Save the training feature vectors with these keys
     for(var i=0; i<trainFeatureVectors.length; i++){
         var trainInstance = {};
-        for(var j=0; j<n; j++){
+        for(var j=0; j<n && j<keysSorted.length; j++){
             if(trainFeatureVectors[i].vec.hasOwnProperty(keysSorted[j])){
                 trainInstance[keysSorted[j]] = trainFeatureVectors[i].vec[keysSorted[j]];
             } else {
                 trainInstance[keysSorted[j]] = 0;
             }
         }
-        console.log(trainInstance);
         trainRes.push({'vec':trainInstance, 'label':trainFeatureVectors[i].label});
     }
     // Save the test feature vectors with these keys
     for(var i=0; i<testFeatureVectors.length; i++){
         var testInstance = {};
-        for(var j=0; j<n; j++){
-            if(testFeatureVectors[i].hasOwnProperty(keysSorted[j])){
+        for(var j=0; j<n && j<keysSorted.length; j++){
+            if(testFeatureVectors[i].vec.hasOwnProperty(keysSorted[j])){
                 testInstance[keysSorted[j]] = trainFeatureVectors[i].vec[keysSorted[j]];
             } else {
                 testInstance[keysSorted[j]] = 0;
@@ -205,10 +227,20 @@ function saveSparse(featureVector){
     
 }
 
-// Short test for select features
-// var train = [{vec:{"peter":0.4, "pan":0.7}, label:true}];
-// var test = [{vec:{"peter":0.4, "pan":0.7}, label:true}];
-// var df = {"peter":0.8, "pan":0.6};
 
-// var res =selectFeatures(train, test, df, 1);
-// console.log(res.train[0].vec);
+
+// Mocha tests for Textkit
+// describe('Testing Textkit', function(){
+//     it('Stopwords and Stemming', function(){
+//         var test = [{words:["Peter", "Fragen", "mit", "seinen", "Freunden", "Peter", "Pan", "und", "Hans", "Kochbücher", "Informationen","die", "roten", "Straßen"], label:true}];
+//         var result = [{words:["Peter", "Fragen", "Freund", "Peter", "Pan", "Hans", "Kochbuc", "Informat", "roten", "Strass"], label:true}];
+//         should.deepEqual(stemAndStop(test), result);
+//     });
+//     it('TfIdf', function(){
+//         var train = [{words:["peter", "pan", "geht", "peter", "peter", "pan"], label:true}, {words:["paul", "peter", "paul", "paul"], label:true}];
+//         var test = [{words:["peter"], label:true}, {words:["paul"], label:false}];
+//         var logZwei = log(10, 2);
+//         var result = {train:[{vec:{"peter":0, "pan":2*logZwei, "geht":logZwei}, label:true}, {vec:{"peter":0, "paul":3*logZwei}, label:true}], test:[{vec:{"peter":0}, label:true},{vec:{"paul":logZwei}, label:false}], df:{"peter":2,"pan":1, "geht":1, "paul":1}};
+//         should.deepEqual(calcTfIdf(train, test), result);
+//     });
+// });

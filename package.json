@@ -11,7 +11,10 @@
     "natural": "~0.2.1",
     "async": "~0.9.0",
     "mongoose": "~4.0.3",
-    "q": "~1.4.1"
+    "q": "~1.4.1",
+    "node-snowball": "~0.1.15",
+    "multi-stopwords": "~1.0.1",
+    "should": "~6.0.3"
   },
   "devDependencies": {
     "grunt": "~0.4.5",

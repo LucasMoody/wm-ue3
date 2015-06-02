@@ -1,5 +1,5 @@
 var mongoose = require('mongoose');
-var Webpage = require('./models/webpage.js')
+var Webpage = require('./models/webpage.js');
 
 mongoose.connect('mongodb://52.28.85.224:27017/uebung3');
 
@@ -9,8 +9,8 @@ db.on('error', console.error.bind(console, 'MongoDB Connection Error:'));
       console.log("Connected to mongoDB!");
 });
 
-exports.storeWebpage = function(url, text, callback){
-    var newPage = new Webpage({ url:url, text:text });
+exports.storeWebpage = function(url, text, italian, callback){
+    var newPage = new Webpage({ url:url, text:text, italian : italian});
     newPage.save(function (err, res) {
         if (err) {
             callback(err, false);
@@ -20,14 +20,12 @@ exports.storeWebpage = function(url, text, callback){
     });
 }
 
-exports.storeWebpageSync = function(url, text){
-    var newPage = new Webpage({ url:url, text:text });
-    newPage.save(function (err, res) {
-        if (err) {
-            console.error(err);
-            return false;
+exports.getTrainingDocuments = function(callback) {
+    Webpage.find({}, 'text italian', function(err, res) {
+        if(err){
+          callback(err);
         } else {
-            return true;
+          callback(undefined, res);
         }
     });
 }

@@ -1,30 +1,45 @@
 var request = require('request');
 var cheerio = require('cheerio');
 
+
 // Able to scrape a smaller number than 30 on the page.
-function scrapeSmall(url,amount){
+function scrapeSmall(url,amount, italian){
     
+
      request(url,function(err, resp, body){
          if(!err){
+              
      $ = cheerio.load(body);
      
+     var result = [];
+     
      $('.rowclick').each(function(index){
+           
      var a = $(this).attr('data-url');
        var urlIntern = "http://chefkoch.de"+a;
        if(index<amount){
-           console.log(urlIntern);
-         
-           //console.log(getContent(urlIntern));
-           //insert into mongoDB here
+          
+           var dataset = {
+               url : urlIntern,
+               text : body,
+               italian : italian
+           };
+           
+           result.push(dataset);
+           
+           //////////////////////////////////
+           //insert result array into mongoDB here
+           /////////////////////////////////
        }
     
      });
+     console.log(result);
          }
 });
 }
 
 // Scrapes all the links on the url
-function scrapeChefkoch(url,max){
+function scrapeChefkoch(url,max,italian){
     
      request(url,function(err, resp, body){
          if(!err){
@@ -34,10 +49,20 @@ function scrapeChefkoch(url,max){
      $('.rowclick').each(function(index){
       var a = $(this).attr('data-url');
       var urlIntern = "http://chefkoch.de"+a;
-
-             console.log(urlIntern);
-           // insert into mongoDB here
-           //  exports.storeWebpageSync("http://chefkoch.de"+ a,);
+      
+      var result = [];
+      
+       var dataset = {
+               url : urlIntern,
+               text : body,
+               italian : italian
+           };
+           
+           result.push(dataset);
+           
+            /////////////////////////////////
+           // insert result array into mongoDB here
+           //////////////////////////////////
           
      });
          }
@@ -47,7 +72,7 @@ function scrapeChefkoch(url,max){
 // input: 
 //       - startURL: the URL of the first page
 //       - amount: the amount of receipts you want to scrape
-function scrapeAll(startURL,amount){
+function scrapeAll(startURL,amount,italian){
     
     // Get each link from every page
     var amountOfPages = amount/30;
@@ -69,37 +94,32 @@ function scrapeAll(startURL,amount){
         count++;
     }
     startURL=startURL.replace("s0","s"+intvalue*30);
-    scrapeSmall(startURL,restPages);
+    scrapeSmall(startURL,restPages,italian);
     
     
 }
 
 // Get the instruction text from the URLs (receipt)
-// Problem: Can only print the output but can't handle to implement a return statement...
-function getContent(url){
+// Problem: Can only print the output but can't implement a return statement...
+function getContent(html){
      
-     request(url,function(err, resp, body){
-         if(!err){
-     $ = cheerio.load(body);
+     $ = cheerio.load(html);
     
      $('.instructions').filter(function(){
          
-         var output = $(this).text().trim();
-         console.log(output);
+         var output = $(this).text().trim().toLowerCase();
+         return output;
         
      });
-         }
-    });
-
+        
 }
-
-
-
 
 // Call functions
 
+
+
 // Italian 500
-//scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",500);
+scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",32,true);
 
 // International
 // Afrika 100
@@ -116,9 +136,6 @@ function getContent(url){
 
 // Australia 100
 //scrapeAll("http://www.chefkoch.de/rs/s0t145/Australien-Rezepte.html",100);
-
-
-getContent("http://www.chefkoch.de/rezepte/889601194503872/Knusprig-duenne-Pizza-mit-Chorizo-und-Mozzarella.html");
 
 
 

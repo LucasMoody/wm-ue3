@@ -1,49 +1,56 @@
 var snowball = require('node-snowball');
 var stop_words=require('multi-stopwords')(['de']);
 var should = require('should');
-
-exports.prepareDocuments = function(){
-    
-    // [{text:"<html>...", label:TRUE}, {text:...}]
-    var htmlDocuments = retrieveFromDb();
-    // [{text:"the peter pan", label:TRUE}, {text:...}]
-    var documents = getRecipeBodyText(htmlDocuments);
-    // [{text:"the peter pan", label:TRUE}, {text:...}]
-    var documents = getRecipeDivText(htmlDocuments); //alternativ
-    // [{words:["the", peter", "pan"], label:TRUE}, {words:...}]
-    var docWordLists = documentToWordList(documents);
-    // [{words:["peter", "pan"], label:TRUE}, {words:...}]
-    docWordLists = stemAndStop(docWordLists);
-    
-    var randomSelection = selectTestTrainRandom(docWordLists);
-    // [{words:"peter", "pan"], label:TRUE}, {words:...}]
-    var trainDocWordLists = randomSelection.train;
-    // [{words:"peter", "pan"], label:TRUE}, {words:...}]
-    var testDocWordLists = randomSelection.test;
-    
-    var tfidfResult = calcTfIdf(trainDocWordLists, testDocWordLists);
-    // [{vec:{"peter":0.4, "pan":0.7}, label:TRUE}, {vec:...}]
-    var trainFeatureVectors = tfidfResult.train;
-    // [{vec:{"peter":0.4, "pan":0.7}, label:TRUE}, {vec:...}]
-    var testFeatureVectors = tfidfResult.test;
-    
-    var dfObject = tfidfResult.df;
-    
-    var featureSelectionResult = selectFeatures(trainFeatureVectors, testFeatureVectors, dfObject, 50);
-    // [{vec:{"pan":0.7, "peter":0.4}, label:TRUE}, {vec:...}]
-    trainFeatureVectors = featureSelectionResult.train;
-    // [{vec:{"pan":0.7, "peter":0.4}, label:TRUE}, {vec:...}]
-    testFeatureVectors = featureSelectionResult.test;
-    
-    // Die Featurevektoren sind nun nach document frequency absteigend sortiert, d.h.
-    // alle Vektoren enthalten die gleichen Attribute in der gleichen Reihenfolge
-    
-    saveSparse(trainFeatureVectors, testFeatureVectors);
-
-}
+var mongo = require('../dbconnection/mongo-con.js'),
+    fs = require('fs'),
+    path = require('path'),
+    TRAINING_DATA_FILE_NAME = "train.ds",
+    TEST_DATA_FILE_NAME = "test.ds";
 
 function retrieveFromDb(){
 
+}
+
+exports.prepareDocuments = function(callback){
+    
+    mongo.getTrainingDocuments(function(err, res) {
+        // res: [{text:"<html>...", label:TRUE}, {text:...}]
+        if (!err) {
+            // [{text:"the peter pan", label:TRUE}, {text:...}]
+            var documents = getRecipeBodyText(res);
+            // [{text:"the peter pan", label:TRUE}, {text:...}]
+            var documents = getRecipeDivText(res); //alternativ
+            // [{words:["the", peter", "pan"], label:TRUE}, {words:...}]
+            var docWordLists = documentToWordList(documents);
+            // [{words:"peter", "pan"], label:TRUE}, {words:...}]
+            docWordLists = stemAndStop(docWordLists);
+            
+            var randomSelection = selectTestTrainRandom(docWordLists);
+            // [{words:"peter", "pan"], label:TRUE}, {words:...}]
+            var trainDocWordLists = randomSelection.train;
+            // [{words:"peter", "pan"], label:TRUE}, {words:...}]
+            var testDocWordLists = randomSelection.test;
+            
+            var tfidfResult = calcTfIdf(trainDocWordLists, testDocWordLists);
+            // [{vec:{"peter":0.4, "pan":0.7}, label:TRUE}, {vec:...}]
+            var trainFeatureVectors = tfidfResult.train;
+            // [{vec:{"peter":0.4, "pan":0.7}, label:TRUE}, {vec:...}]
+            var testFeatureVectors = tfidfResult.test;
+            
+            var dfObject = tfidfResult.df;
+            
+            var featureSelectionResult = selectFeatures(trainFeatureVectors, testFeatureVectors, dfObject, 50);
+            // [{vec:{"pan":0.7, "peter":0.4}, label:TRUE}, {vec:...}]
+            trainFeatureVectors = featureSelectionResult.train;
+            // [{vec:{"pan":0.7, "peter":0.4}, label:TRUE}, {vec:...}]
+            testFeatureVectors = featureSelectionResult.test;
+            
+            // Die Featurevektoren sind nun nach tfidf Relevanz absteigend sortiert, d.h.
+            // alle Vektoren enthalten die gleichen Attribute in der gleichen Reihenfolge
+            
+            saveSparse(trainFeatureVectors,testFeatureVectors);
+        }
+    });
 }
 
 function getRecipeDivText(htmlDocuments) {
@@ -223,8 +230,9 @@ function selectFeatures(trainFeatureVectors, testFeatureVectors, df, n){
     return {train:trainRes, test:testRes};
 }
 
-function saveSparse(featureVector){
-    
+function saveSparse(trainFeatureVectors, testFeatureVectors){
+    var trainingWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8'),
+        testWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8');
 }
 
 

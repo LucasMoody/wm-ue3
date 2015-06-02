@@ -1,6 +1,22 @@
 var request = require('request');
 var cheerio = require('cheerio');
 
+// JS Objects
+function Data (url,text) {
+    this.url = url;
+    this.text = text;
+    this.getURL = getURL;
+    this.getText = getText;
+}
+ 
+function getURL() {
+    return this.url;
+}
+
+function getText() {
+    return this.text;
+}
+
 // Able to scrape a smaller number than 30 on the page.
 function scrapeSmall(url,amount){
     
@@ -12,10 +28,12 @@ function scrapeSmall(url,amount){
      var a = $(this).attr('data-url');
        var urlIntern = "http://chefkoch.de"+a;
        if(index<amount){
-           console.log(urlIntern);
-         
-           //console.log(getContent(urlIntern));
-           //insert into mongoDB here
+           var dataset = new Data(urlIntern,getHTML(urlIntern));
+           console.log(dataset.url);
+           console.log(dataset.getText());
+           //////////////////////////////////
+           //insert dataset into mongoDB here
+           /////////////////////////////////
        }
     
      });
@@ -35,9 +53,12 @@ function scrapeChefkoch(url,max){
       var a = $(this).attr('data-url');
       var urlIntern = "http://chefkoch.de"+a;
 
-             console.log(urlIntern);
-           // insert into mongoDB here
-           //  exports.storeWebpageSync("http://chefkoch.de"+ a,);
+            var dataset = new Data(urlIntern,getHTML(urlIntern));
+            console.log(dataset.getURL());
+            console.log(dataset.getText());
+            /////////////////////////////////
+           // insert dataset into mongoDB here
+           //////////////////////////////////
           
      });
          }
@@ -75,7 +96,7 @@ function scrapeAll(startURL,amount){
 }
 
 // Get the instruction text from the URLs (receipt)
-// Problem: Can only print the output but can't handle to implement a return statement...
+// Problem: Can only print the output but can't implement a return statement...
 function getContent(url){
      
      request(url,function(err, resp, body){
@@ -85,12 +106,18 @@ function getContent(url){
      $('.instructions').filter(function(){
          
          var output = $(this).text().trim();
-         console.log(output);
+         return output;
         
      });
          }
+         
     });
 
+}
+
+function getHTML(url){
+    // do smth
+    return "Here goes the text from the url: " + url;
 }
 
 
@@ -98,8 +125,9 @@ function getContent(url){
 
 // Call functions
 
+
 // Italian 500
-//scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",500);
+//scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",100);
 
 // International
 // Afrika 100
@@ -118,9 +146,7 @@ function getContent(url){
 //scrapeAll("http://www.chefkoch.de/rs/s0t145/Australien-Rezepte.html",100);
 
 
-getContent("http://www.chefkoch.de/rezepte/889601194503872/Knusprig-duenne-Pizza-mit-Chorizo-und-Mozzarella.html");
-
-
+//getContent("http://www.chefkoch.de/rezepte/889601194503872/Knusprig-duenne-Pizza-mit-Chorizo-und-Mozzarella.html");
 
 
 

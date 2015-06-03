@@ -1,6 +1,6 @@
 var request = require('request');
 var cheerio = require('cheerio');
-
+var mongo = require("../dbconnection/mongo-con.js");
 
 // Able to scrape a smaller number than 30 on the page.
 function scrapeSmall(url,amount, italian){
@@ -10,8 +10,6 @@ function scrapeSmall(url,amount, italian){
          if(!err){
               
      $ = cheerio.load(body);
-     
-     var result = [];
      
      $('.rowclick').each(function(index){
            
@@ -25,16 +23,19 @@ function scrapeSmall(url,amount, italian){
                italian : italian
            };
            
-           result.push(dataset);
+          
+           mongo.storeWebpage(dataset,function(err,succ){
+          
+            if(err){
+                console.error(err);
+            }    
+             
+          });
            
-           //////////////////////////////////
-           //insert result array into mongoDB here
-           /////////////////////////////////
        }
     
      });
-     console.log(result);
-         }
+    }
 });
 }
 
@@ -50,19 +51,20 @@ function scrapeChefkoch(url,max,italian){
       var a = $(this).attr('data-url');
       var urlIntern = "http://chefkoch.de"+a;
       
-      var result = [];
-      
        var dataset = {
                url : urlIntern,
                text : body,
                italian : italian
            };
            
-           result.push(dataset);
-           
-            /////////////////////////////////
-           // insert result array into mongoDB here
-           //////////////////////////////////
+          mongo.storeWebpage(dataset,function(err,succ){
+          
+            if(err){
+                console.error(err);
+            }    
+             
+          });
+          
           
      });
          }
@@ -123,19 +125,19 @@ scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",32,tr
 
 // International
 // Afrika 100
-//scrapeAll("http://www.chefkoch.de/rs/s0t101/Afrika-Rezepte.html",100);
+//scrapeAll("http://www.chefkoch.de/rs/s0t101/Afrika-Rezepte.html",100,false);
 
 // Spain 100 
-//scrapeAll("http://www.chefkoch.de/rs/s0t29,43/Europa-Spanien-Rezepte.html",100);
+//scrapeAll("http://www.chefkoch.de/rs/s0t29,43/Europa-Spanien-Rezepte.html",100,false);
 
 // German 100
-//scrapeAll("http://www.chefkoch.de/rs/s0t29,65/Europa-Deutschland-Rezepte.html",100);
+//scrapeAll("http://www.chefkoch.de/rs/s0t29,65/Europa-Deutschland-Rezepte.html",100,false);
 
 // French 100
-//scrapeAll("http://www.chefkoch.de/rs/s0t29,84/Europa-Frankreich-Rezepte.html",100);
+//scrapeAll("http://www.chefkoch.de/rs/s0t29,84/Europa-Frankreich-Rezepte.html",100,false);
 
 // Australia 100
-//scrapeAll("http://www.chefkoch.de/rs/s0t145/Australien-Rezepte.html",100);
+//scrapeAll("http://www.chefkoch.de/rs/s0t145/Australien-Rezepte.html",100,false);
 
 
 

@@ -120,10 +120,11 @@ function calcTfIdf(trainDocs, testDocs){
             } else{
                 idfObject[keys[k]] = 1;
             }
-            // Save realtive frequency for each term
+            // Save relative frequency for each term
             tf[keys[k]] = tf[keys[k]] / wordlist.length;
         }
     }
+    console.log(tfTrainArray);
     // Save df Object before making it idf
     // http://stackoverflow.com/questions/6089058/nodejs-how-to-clone-a-object
     var dfObjRes = JSON.parse(JSON.stringify(idfObject));
@@ -161,6 +162,11 @@ function calcTfIdf(trainDocs, testDocs){
             }
         }
         tfTestArray.push(tf);
+        // Iterate through all terms in one document
+        for(var k=0, keys=Object.keys(tf); k<keys.length; k++){
+            // Save relative frequency for each term
+            tf[keys[k]] = tf[keys[k]] / wordlist.length;
+        }
     }
     
     var tfIdfTestArray = Array();
@@ -168,7 +174,11 @@ function calcTfIdf(trainDocs, testDocs){
     for(var m=0; m<tfTestArray.length; m++){
         var tfidf = {};
         for(var n=0, keys=Object.keys(tfTestArray[m]); n<keys.length; n++){
+            console.log(keys[n]);
+            console.log(tfTestArray[m][keys[n]]);
+            console.log(idfObject[keys[n]]);
             tfidf[keys[n]] = tfTestArray[m][keys[n]] * idfObject[keys[n]];
+            console.log(tfidf[keys[n]]);
         }
         tfIdfTestArray.push(tfidf);
     }
@@ -293,20 +303,26 @@ function saveSparse(trainFeatureVectors, testFeatureVectors){
     });
 }
 
+    //   var train = [{words:["this", "is", "a", "sample"], label:true}, {words:["this", "is", "another", "example"], label:true}];
+    //     var test = [{words:["this", "is", "a", "sample"], label:true}, {words:["this", "is", "another", "example"], label:false}];
+    //     var l2 = log(10, 2);
+    //     var result = {train:[{vec:{"this":0,"is":0, "a":(2/4)*l2, "sample":(1/4)*l2}, label:true}, {vec:{"this":0,"is":0, "another":(2/4)*l2, "example":(3/4)*l2}, label:true}], test:[{vec:{"this":0,"is":0, "a":(2/4)*l2, "sample":(1/4)*l2}, label:true}, {vec:{"this":0,"is":0, "another":(2/4)*l2, "example":(3/4)*l2}, label:false}], df:{"peter":2,"pan":1, "geht":1, "paul":1}};
+    //     should.deepEqual(calcTfIdf(train, test), result);
+
 
 
 // Mocha tests for Textkit
-// describe('Testing Textkit', function(){
-//     it('Stopwords and Stemming', function(){
-//         var test = [{words:["Peter", "Fragen", "mit", "seinen", "Freunden", "Peter", "Pan", "und", "Hans", "Kochbücher", "Informationen","die", "roten", "Straßen"], label:true}];
-//         var result = [{words:["Peter", "Fragen", "Freund", "Peter", "Pan", "Hans", "Kochbuc", "Informat", "roten", "Strass"], label:true}];
-//         should.deepEqual(stemAndStop(test), result);
-//     });
-//     it('TfIdf', function(){
-//         var train = [{words:["peter", "pan", "geht", "peter", "peter", "pan"], label:true}, {words:["paul", "peter", "paul", "paul"], label:true}];
-//         var test = [{words:["peter"], label:true}, {words:["paul"], label:false}];
-//         var logZwei = log(10, 2);
-//         var result = {train:[{vec:{"peter":0, "pan":2*logZwei, "geht":logZwei}, label:true}, {vec:{"peter":0, "paul":3*logZwei}, label:true}], test:[{vec:{"peter":0}, label:true},{vec:{"paul":logZwei}, label:false}], df:{"peter":2,"pan":1, "geht":1, "paul":1}};
-//         should.deepEqual(calcTfIdf(train, test), result);
-//     });
-// });
+describe('Testing Textkit', function(){
+    it('Stopwords and Stemming', function(){
+        var test = [{words:["Peter", "Fragen", "mit", "seinen", "Freunden", "Peter", "Pan", "und", "Hans", "Kochbücher", "Informationen","die", "roten", "Straßen"], label:true}];
+        var result = [{words:["Peter", "Fragen", "Freund", "Peter", "Pan", "Hans", "Kochbuc", "Informat", "roten", "Strass"], label:true}];
+        should.deepEqual(stemAndStop(test), result);
+    });
+    it('TfIdf', function(){
+        var train = [{words:["this", "is", "a","a", "sample"], label:true}, {words:["this", "is", "another","another", "example","example","example"], label:true}];
+        var test = [{words:["this", "is", "a","a", "sample"], label:true}, {words:["this", "is", "another","another", "example","example","example"], label:false}];
+        var l2 = log(10, 2);
+        var result = {train:[{vec:{"this":0,"is":0, "a":(2/5)*l2, "sample":(1/5)*l2}, label:true}, {vec:{"this":0,"is":0, "another":(2/7)*l2, "example":(3/7)*l2}, label:true}], test:[{vec:{"this":0,"is":0, "a":(2/5)*l2, "sample":(1/5)*l2}, label:true}, {vec:{"this":0,"is":0, "another":(2/7)*l2, "example":(3/7)*l2}, label:false}], df:{"this":2, "is":2, "a":1, "sample":1, "another":1, "example":1}};
+        should.deepEqual(calcTfIdf(train, test), result);
+    });
+});

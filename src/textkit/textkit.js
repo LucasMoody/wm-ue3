@@ -2,6 +2,7 @@ var snowball = require('node-snowball');
 var stop_words=require('multi-stopwords')(['de']);
 var should = require('should');
 var mongo = require('../dbconnection/mongo-con.js'),
+    natural = require("natural"),
     fs = require('fs'),
     path = require('path'),
     TRAINING_DATA_FILE_NAME = "train.ds",
@@ -14,7 +15,7 @@ function retrieveFromDb(){
 
 exports.prepareDocuments = function(callback){
     
-    mongo.getTrainingDocuments(function(err, res) {
+    mongo.getDocuments(function(err, res) {
         // res: [{text:"<html>...", label:TRUE}, {text:...}]
         if (!err) {
             // [{text:"the peter pan", label:TRUE}, {text:...}]
@@ -56,24 +57,44 @@ exports.prepareDocuments = function(callback){
 
 
 function getRecipeDivText(htmlDocuments) {
-    
-     
+    var result = [];
+    htmlDocuments.forEach(function(val, idx) {
+        var $ = cheerio.load(val.text);
+        $('script').remove();
+        $('style').remove();
+    	result.push({
+    	   text : $('.instructions').text(),
+    	   label : val.italian
+    	});
+    });
+    return result;
 }
 // returns the receipts instructions (lower cased) from the given html
 // not tested yet
 function getRecipeBodyText(htmlDocuments) {
-    $ = cheerio.load(htmlDocuments);
-    
-     $('.instructions').filter(function(){
-         
-         var output = $(this).text().trim().toLowerCase();
-         return output;
+    var result = [];
+    htmlDocuments.forEach(function(val, idx) {
+        var $ = cheerio.load(val.text);
+        $('script').remove();
+        $('style').remove();
+    	result.push({
+    	   text : $('body').text(),
+    	   label : val.italian
+    	});
         
-     }); 
+    });
 }
 
-function documentToWordList(){
-    
+function documentToWordList(documents){
+    var result = [],
+        tokenizer = new natural.TreebankWordTokenizer();
+    documents.forEach(function(val, idx) {
+        result.push({
+            words : tokenizer.tokenize(val.text),
+            label : val.label
+        });
+    });
+    return result;
 }
 
 //Wenden Sie auf die Liste von Wörtern Stoppwort-Filterung und Stemming an. 

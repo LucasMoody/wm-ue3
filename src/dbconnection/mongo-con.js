@@ -20,7 +20,7 @@ exports.storeWebpage = function(siteInfo, callback){
     });
 }
 
-exports.getTrainingDocuments = function(callback) {
+exports.getDocuments = function(callback) {
     Webpage.find({}, 'text italian', function(err, res) {
         if(err){
           callback(err);

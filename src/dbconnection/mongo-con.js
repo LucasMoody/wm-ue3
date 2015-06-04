@@ -1,7 +1,7 @@
 var mongoose = require('mongoose');
 var Webpage = require('./models/webpage.js');
 
-mongoose.connect('mongodb://52.28.85.224:27017/uebung3');
+mongoose.connect('mongodb://127.0.0.1:27017/uebung3');
 
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB Connection Error:'));

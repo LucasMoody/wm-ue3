@@ -14,7 +14,8 @@
     "q": "~1.4.1",
     "node-snowball": "~0.1.15",
     "multi-stopwords": "~1.0.1",
-    "should": "~6.0.3"
+    "should": "~6.0.3",
+    "seedrandom":"~2.4.0"
   },
   "devDependencies": {
     "grunt": "~0.4.5",

@@ -6,6 +6,7 @@ var mongo = require('../dbconnection/mongo-con.js'),
     path = require('path'),
     TRAINING_DATA_FILE_NAME = "train.ds",
     TEST_DATA_FILE_NAME = "test.ds";
+var cheerio = require('cheerio');    
 
 function retrieveFromDb(){
 
@@ -53,12 +54,22 @@ exports.prepareDocuments = function(callback){
     });
 }
 
+
 function getRecipeDivText(htmlDocuments) {
     
+     
 }
-
+// returns the receipts instructions (lower cased) from the given html
+// not tested yet
 function getRecipeBodyText(htmlDocuments) {
+    $ = cheerio.load(htmlDocuments);
     
+     $('.instructions').filter(function(){
+         
+         var output = $(this).text().trim().toLowerCase();
+         return output;
+        
+     }); 
 }
 
 function documentToWordList(){

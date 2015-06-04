@@ -23,14 +23,15 @@ function scrapeSmall(url,amount, italian){
                italian : italian
            };
            
+           console.log(dataset.url);
           
-           mongo.storeWebpage(dataset,function(err,succ){
+         /*  mongo.storeWebpage(dataset,function(err,succ){
           
             if(err){
                 console.error(err);
             }    
              
-          });
+          });*/
            
        }
     
@@ -56,14 +57,15 @@ function scrapeChefkoch(url,max,italian){
                text : body,
                italian : italian
            };
+           console.log(dataset.url);
            
-          mongo.storeWebpage(dataset,function(err,succ){
+         /* mongo.storeWebpage(dataset,function(err,succ){
           
             if(err){
                 console.error(err);
             }    
              
-          });
+          });*/
           
           
      });
@@ -118,10 +120,8 @@ function getContent(html){
 
 // Call functions
 
-
-
 // Italian 500
-scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",32,true);
+scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",500,true);
 
 // International
 // Afrika 100
@@ -138,10 +138,3 @@ scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",32,tr
 
 // Australia 100
 //scrapeAll("http://www.chefkoch.de/rs/s0t145/Australien-Rezepte.html",100,false);
-
-
-
-
-
-
-

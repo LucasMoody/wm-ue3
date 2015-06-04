@@ -291,7 +291,7 @@ function saveSparse(trainFeatureVectors, testFeatureVectors){
     testFeatureVectors.forEach(function(val, idx) {
         for (var word in val.vec) {
             if (val.vec.hasOwnProperty(word) && !(word in wordIndexMap)) {
-                wordIndexMap[word] = curNumOfIndices;
+                wordIndexMap[curNumOfIndices] = word;
                 curNumOfIndices++;
             }
         }    
@@ -344,6 +344,8 @@ function saveArff(wordIndexMap, trainFeatureVectors, testFeatureVectors) {
     var trainingWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8'),
         testWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8');
     //write training set data to file
+    
+    
     trainFeatureVectors.forEach(function(val, idx) {
         if(val.label) {
             trainingWriteStream.write(1);
@@ -378,6 +380,12 @@ function saveArff(wordIndexMap, trainFeatureVectors, testFeatureVectors) {
     });
     trainingWriteStream.end();
     testWriteStream.end();
+}
+
+function saveArffHead(wordIndexMap, stream) {
+    for (var index = 0; index<Object.keys(wordIndexMap).length; index++) {
+        
+    }
 }
 
 

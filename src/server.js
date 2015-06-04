@@ -1,3 +1,3 @@
 var textkit = require('./textkit/textkit.js');
 
-textkit.prepareDocuments(console.log);
+textkit.prepareDocuments(300, console.log);

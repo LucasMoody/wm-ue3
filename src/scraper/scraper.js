@@ -5,7 +5,12 @@ var mongo = require("../dbconnection/mongo-con.js");
 // Able to scrape a smaller number than 30 on the page.
 function scrapeSmall(url,amount, italian){
     
-    request(url,function(err, resp, body){
+    request({
+                url: url,
+                headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:38.0) Gecko/20100101 Firefox/38.0'
+                }
+},function(err, resp, body){
         if(!err){
 
             $ = cheerio.load(body);

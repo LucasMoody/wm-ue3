@@ -20,28 +20,40 @@ exports.prepareDocuments = function(n, callback){
         // res: [{text:"<html>...", label:TRUE}, {text:...}]
         if (!err) {
             // [{text:"the peter pan", label:TRUE}, {text:...}]
+            console.log("Extract text from html...");
             var documents = getRecipeBodyText(res);
+      //      console.log(documents[0].text);
             // [{text:"the peter pan", label:TRUE}, {text:...}]
     //        var documents = getRecipeDivText(res); //alternativ
             // [{words:["the", peter", "pan"], label:TRUE}, {words:...}]
+            console.log("Build word list from text string...");
             var docWordLists = documentToWordList(documents);
+       //     console.log(docWordLists[0].words);
             // [{words:"peter", "pan"], label:TRUE}, {words:...}]
+            console.log("Stemming and stopwords...");
             docWordLists = stemAndStop(docWordLists);
+            console.log(docWordLists[0].words);
             
+      //      console.log("Split data randomly...");
             var randomSelection = selectTestTrainRandom(docWordLists);
             // [{words:"peter", "pan"], label:TRUE}, {words:...}]
             var trainDocWordLists = randomSelection.train;
             // [{words:"peter", "pan"], label:TRUE}, {words:...}]
             var testDocWordLists = randomSelection.test;
+        //    console.log(trainDocWordLists.length);
+        //   console.log(testDocWordLists.length);
             
+            console.log("Calculate tfidf...");
             var tfidfResult = calcTfIdf(trainDocWordLists, testDocWordLists);
             // [{vec:{"peter":0.4, "pan":0.7}, label:TRUE}, {vec:...}]
             var trainFeatureVectors = tfidfResult.train;
             // [{vec:{"peter":0.4, "pan":0.7}, label:TRUE}, {vec:...}]
             var testFeatureVectors = tfidfResult.test;
+            console.log(trainFeatureVectors[0]);
             
             var dfObject = tfidfResult.df;
             
+            console.log("Select features with highest df...");
             var featureSelectionResult = selectFeatures(trainFeatureVectors, testFeatureVectors, dfObject, n);
             if(featureSelectionResult == false){
                 callback(new Error("N is bigger than number of features!"));
@@ -53,10 +65,11 @@ exports.prepareDocuments = function(n, callback){
                 
                 // Die Featurevektoren sind nun nach tfidf Relevanz absteigend sortiert, d.h.
                 // alle Vektoren enthalten die gleichen Attribute in der gleichen Reihenfolge
-                
+                console.log("Save features sparse...");
                 saveSparse(trainFeatureVectors,testFeatureVectors);
                 callback(null, true);
             }
+            mongo.disconnect();
             
         }
     });
@@ -242,11 +255,7 @@ function calcTfIdf(trainDocs, testDocs){
     for(var m=0; m<tfTestArray.length; m++){
         var tfidf = {};
         for(var n=0, keys=Object.keys(tfTestArray[m]); n<keys.length; n++){
-            console.log(keys[n]);
-            console.log(tfTestArray[m][keys[n]]);
-            console.log(idfObject[keys[n]]);
             tfidf[keys[n]] = tfTestArray[m][keys[n]] * idfObject[keys[n]];
-            console.log(tfidf[keys[n]]);
         }
         tfIdfTestArray.push(tfidf);
     }
@@ -347,27 +356,29 @@ function saveDs(wordIndexMap, trainFeatureVectors, testFeatureVectors) {
     //write training set data to file
     trainFeatureVectors.forEach(function(val, idx) {
         if(val.label) {
-            trainingWriteStream.write(1);
+            trainingWriteStream.write("1");
             
         } else {
-            trainingWriteStream.write(0);
+            trainingWriteStream.write("0");
         }
         trainingWriteStream.write(" ");
         for (var index = 0; index<Object.keys(wordIndexMap).length; index++) {
+            console.log(index);
             if (wordIndexMap[index] in val.vec) {
                 trainingWriteStream.write(index + ":" + val.vec[wordIndexMap[index]] + " ");
             }
         }
         trainingWriteStream.write("\n");
     });
+    console.log("fertig train");
     
     //write test set data to file
     testFeatureVectors.forEach(function(val, idx) {
         if(val.label) {
-            testWriteStream.write(1);
+            testWriteStream.write("1");
             
         } else {
-            testWriteStream.write(0);
+            testWriteStream.write("0");
         }
         testWriteStream.write(" ");
         for (var index = 0; index<Object.keys(wordIndexMap).length; index++) {
@@ -377,8 +388,10 @@ function saveDs(wordIndexMap, trainFeatureVectors, testFeatureVectors) {
         }
         testWriteStream.write("\n");
     });
+    console.log("fertig test");
     trainingWriteStream.end();
     testWriteStream.end();
+    console.log("fertig");
 }
 
 function saveArff(wordIndexMap, trainFeatureVectors, testFeatureVectors) {

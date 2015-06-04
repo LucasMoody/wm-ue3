@@ -119,20 +119,20 @@ function getContent(html){
 // Call functions
 
 // Italian 500
-//scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",500,true);
+scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",500,true);
 
 // International
 // Afrika 100
 scrapeAll("http://www.chefkoch.de/rs/s0t101/Afrika-Rezepte.html",100,false);
 
 // Spain 100 
-//scrapeAll("http://www.chefkoch.de/rs/s0t29,43/Europa-Spanien-Rezepte.html",100,false);
+scrapeAll("http://www.chefkoch.de/rs/s0t29,43/Europa-Spanien-Rezepte.html",100,false);
 
 // German 100
-//scrapeAll("http://www.chefkoch.de/rs/s0t29,65/Europa-Deutschland-Rezepte.html",100,false);
+scrapeAll("http://www.chefkoch.de/rs/s0t29,65/Europa-Deutschland-Rezepte.html",100,false);
 
 // French 100
-//scrapeAll("http://www.chefkoch.de/rs/s0t29,84/Europa-Frankreich-Rezepte.html",100,false);
+scrapeAll("http://www.chefkoch.de/rs/s0t29,84/Europa-Frankreich-Rezepte.html",100,false);
 
 // Australia 100
-//scrapeAll("http://www.chefkoch.de/rs/s0t145/Australien-Rezepte.html",100,false);
+scrapeAll("http://www.chefkoch.de/rs/s0t145/Australien-Rezepte.html",100,false);

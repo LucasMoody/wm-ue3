@@ -6,69 +6,67 @@ var mongo = require("../dbconnection/mongo-con.js");
 function scrapeSmall(url,amount, italian){
     
 
-     request(url,function(err, resp, body){
-         if(!err){
-              
-     $ = cheerio.load(body);
-     
-     $('.rowclick').each(function(index){
-           
-     var a = $(this).attr('data-url');
-       var urlIntern = "http://chefkoch.de"+a;
-       if(index<amount){
-          
-           var dataset = {
-               url : urlIntern,
-               text : body,
-               italian : italian
-           };
-           
-           console.log(dataset.url);
-          
-         /*  mongo.storeWebpage(dataset,function(err,succ){
-          
-            if(err){
-                console.error(err);
-            }    
-             
-          });*/
-           
-       }
+    request(url,function(err, resp, body){
+        if(!err){
+
+            $ = cheerio.load(body);
+
+            $('.rowclick').each(function(index){
+
+                var a = $(this).attr('data-url');
+                var urlIntern = "http://chefkoch.de"+a;
+                if(index<amount){
+
+                    var dataset = {
+                        url : urlIntern,
+                        text : body,
+                        italian : italian
+                    };
+
+                    console.log(dataset.url);
     
-     });
-    }
-});
+                    mongo.storeWebpage(dataset,function(err,succ){
+    
+                        if(err){
+                            console.error(err);
+                        } else {
+                            console.log("mongo store finished");
+                        }    
+    
+                    });
+
+                }
+            });
+        }
+    });
 }
 
 // Scrapes all the links on the url
 function scrapeChefkoch(url,max,italian){
     
-     request(url,function(err, resp, body){
-         if(!err){
+    request(url,function(err, resp, body){
+        if(!err){
              
-     $ = cheerio.load(body);
-     
-     $('.rowclick').each(function(index){
-      var a = $(this).attr('data-url');
-      var urlIntern = "http://chefkoch.de"+a;
+            $ = cheerio.load(body);
+            $('.rowclick').each(function(index){
+                var a = $(this).attr('data-url');
+                var urlIntern = "http://chefkoch.de"+a;
       
-       var dataset = {
-               url : urlIntern,
-               text : body,
-               italian : italian
-           };
-           console.log(dataset.url);
+                var dataset = {
+                    url : urlIntern,
+                    text : body,
+                    italian : italian
+                };
+                console.log(dataset.url);
            
-         /* mongo.storeWebpage(dataset,function(err,succ){
-          
-            if(err){
-                console.error(err);
-            }    
-             
-          });*/
-          
-          
-     });
+                mongo.storeWebpage(dataset,function(err,succ){
+                    if(err){
+                        console.error(err);
+                    } else {
+                        console.log("mongo store finished");
+                    }
+                });
+            });
          }
     });
 }
@@ -121,7 +119,7 @@ function getContent(html){
 // Call functions
 
 // Italian 500
-scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",500,true);
+scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",30,true);
 
 // International
 // Afrika 100

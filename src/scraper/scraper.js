@@ -24,7 +24,7 @@ function scrapeSmall(url,amount, italian){
 
                     console.log(dataset.url);
     
-               /*     mongo.storeWebpage(dataset,function(err,succ){
+                   mongo.storeWebpage(dataset,function(err,succ){
     
                         if(err){
                             console.error(err);
@@ -32,7 +32,7 @@ function scrapeSmall(url,amount, italian){
                             console.log("mongo store finished");
                         }    
     
-                    });*/
+                    });
 
                 }
             });
@@ -57,14 +57,14 @@ function scrapeChefkoch(url,italian){
                     italian : italian
                 };
                 console.log(dataset.url);
-/*
+
                 mongo.storeWebpage(dataset,function(err,succ){
                     if(err){
                         console.error(err);
                     } else {
                         console.log("mongo store finished");
                     }
-                })*/
+                })
             });
 
          }
@@ -105,7 +105,9 @@ function scrapeAll(startURL,amount,italian){
 // Call functions
 
 // Italian 500
-scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",1000,true);
+
+//scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",500,true);
+
 
 // International
 // Afrika 100

@@ -13,15 +13,11 @@
 
 var so = require('stringify-object');
 var svm = require('node-svm');
-var fileName = './housing.ds';
+var fileName = './svmguide1.t.ds';
 
 var clf = new svm.CSVC({
-    gamma: [0.01, 0.1],
-    c: 8,
-    kFold: 4,
-    normalize: true,
-    reduce: true, // default value
-    retainedVariance: 0.95
+    c: 50,
+    kernelType:'LINEAR'
 });
 
 svm.read(fileName)

@@ -2,6 +2,7 @@ var snowball = require('node-snowball');
 var stop_words=require('multi-stopwords')(['de']);
 var should = require('should');
 var mongo = require('../dbconnection/mongo-con.js'),
+    natural = require("natural"),
     fs = require('fs'),
     path = require('path'),
     TRAINING_DATA_FILE_NAME = "train.ds",
@@ -15,7 +16,7 @@ function retrieveFromDb(){
 
 exports.prepareDocuments = function(callback){
     
-    mongo.getTrainingDocuments(function(err, res) {
+    mongo.getDocuments(function(err, res) {
         // res: [{text:"<html>...", label:TRUE}, {text:...}]
         if (!err) {
             // [{text:"the peter pan", label:TRUE}, {text:...}]
@@ -57,24 +58,44 @@ exports.prepareDocuments = function(callback){
 
 
 function getRecipeDivText(htmlDocuments) {
-    
-     
+    var result = [];
+    htmlDocuments.forEach(function(val, idx) {
+        var $ = cheerio.load(val.text);
+        $('script').remove();
+        $('style').remove();
+    	result.push({
+    	   text : $('.instructions').text(),
+    	   label : val.italian
+    	});
+    });
+    return result;
 }
 // returns the receipts instructions (lower cased) from the given html
 // not tested yet
 function getRecipeBodyText(htmlDocuments) {
-    $ = cheerio.load(htmlDocuments);
-    
-     $('.instructions').filter(function(){
-         
-         var output = $(this).text().trim().toLowerCase();
-         return output;
+    var result = [];
+    htmlDocuments.forEach(function(val, idx) {
+        var $ = cheerio.load(val.text);
+        $('script').remove();
+        $('style').remove();
+    	result.push({
+    	   text : $('body').text(),
+    	   label : val.italian
+    	});
         
-     }); 
+    });
 }
 
-function documentToWordList(){
-    
+function documentToWordList(documents){
+    var result = [],
+        tokenizer = new natural.TreebankWordTokenizer();
+    documents.forEach(function(val, idx) {
+        result.push({
+            words : tokenizer.tokenize(val.text),
+            label : val.label
+        });
+    });
+    return result;
 }
 
 //Wenden Sie auf die Liste von Wörtern Stoppwort-Filterung und Stemming an. 
@@ -282,10 +303,8 @@ function selectFeatures(trainFeatureVectors, testFeatureVectors, df, n){
 }
 
 function saveSparse(trainFeatureVectors, testFeatureVectors){
-    var trainingWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8'),
-        testWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8'),
         //maps index to a word e.g. money is word with index 10
-        wordIndexMap = {},
+    var wordIndexMap = {},
         //start index counter with 0
         curNumOfIndices = 0;
         
@@ -308,7 +327,12 @@ function saveSparse(trainFeatureVectors, testFeatureVectors){
         }    
     });
     
-    
+    saveDs(wordIndexMap, trainFeatureVectors, testFeatureVectors);
+}
+
+function saveDs(wordIndexMap, trainFeatureVectors, testFeatureVectors) {
+    var trainingWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8'),
+        testWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8');
     //write training set data to file
     trainFeatureVectors.forEach(function(val, idx) {
         if(val.label) {
@@ -342,6 +366,48 @@ function saveSparse(trainFeatureVectors, testFeatureVectors){
         }
         testWriteStream.write("\n");
     });
+    trainingWriteStream.end();
+    testWriteStream.end();
+}
+
+function saveArff(wordIndexMap, trainFeatureVectors, testFeatureVectors) {
+    var trainingWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8'),
+        testWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8');
+    //write training set data to file
+    trainFeatureVectors.forEach(function(val, idx) {
+        if(val.label) {
+            trainingWriteStream.write(1);
+            
+        } else {
+            trainingWriteStream.write(0);
+        }
+        trainingWriteStream.write(" ");
+        for (var index = 0; index<Object.keys(wordIndexMap).length; index++) {
+            if (wordIndexMap[index] in val.vec) {
+                trainingWriteStream.write(index + ":" + val.vec[wordIndexMap[index]] + " ");
+            }
+        }
+        trainingWriteStream.write("\n");
+    });
+    
+    //write test set data to file
+    testFeatureVectors.forEach(function(val, idx) {
+        if(val.label) {
+            testWriteStream.write(1);
+            
+        } else {
+            testWriteStream.write(0);
+        }
+        testWriteStream.write(" ");
+        for (var index = 0; index<Object.keys(wordIndexMap).length; index++) {
+            if (wordIndexMap[index] in val.vec) {
+                testWriteStream.write(index + ":" + val.vec[wordIndexMap[index]] + " ");
+            }
+        }
+        testWriteStream.write("\n");
+    });
+    trainingWriteStream.end();
+    testWriteStream.end();
 }
 
 // Mocha tests for Textkit

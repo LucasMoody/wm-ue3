@@ -22,17 +22,20 @@ exports.prepareDocuments = function(n, callback){
             // [{text:"the peter pan", label:TRUE}, {text:...}]
             console.log("Extract text from html...");
             var documents = getRecipeBodyText(res);
-      //      console.log(documents[0].text);
+            //console.log(documents[0].text);
+            
+            /*
+            
             // [{text:"the peter pan", label:TRUE}, {text:...}]
     //        var documents = getRecipeDivText(res); //alternativ
             // [{words:["the", peter", "pan"], label:TRUE}, {words:...}]
-            console.log("Build word list from text string...");
+     //       console.log("Build word list from text string...");
             var docWordLists = documentToWordList(documents);
        //     console.log(docWordLists[0].words);
             // [{words:"peter", "pan"], label:TRUE}, {words:...}]
-            console.log("Stemming and stopwords...");
+       //     console.log("Stemming and stopwords...");
             docWordLists = stemAndStop(docWordLists);
-            console.log(docWordLists[0].words);
+         //   console.log(docWordLists[0].words);
             
       //      console.log("Split data randomly...");
             var randomSelection = selectTestTrainRandom(docWordLists);
@@ -43,17 +46,17 @@ exports.prepareDocuments = function(n, callback){
         //    console.log(trainDocWordLists.length);
         //   console.log(testDocWordLists.length);
             
-            console.log("Calculate tfidf...");
+           // console.log("Calculate tfidf...");
             var tfidfResult = calcTfIdf(trainDocWordLists, testDocWordLists);
             // [{vec:{"peter":0.4, "pan":0.7}, label:TRUE}, {vec:...}]
             var trainFeatureVectors = tfidfResult.train;
             // [{vec:{"peter":0.4, "pan":0.7}, label:TRUE}, {vec:...}]
             var testFeatureVectors = tfidfResult.test;
-            console.log(trainFeatureVectors[0]);
+            //console.log(trainFeatureVectors[0]);
             
             var dfObject = tfidfResult.df;
             
-            console.log("Select features with highest df...");
+            //console.log("Select features with highest df...");
             var featureSelectionResult = selectFeatures(trainFeatureVectors, testFeatureVectors, dfObject, n);
             if(featureSelectionResult == false){
                 callback(new Error("N is bigger than number of features!"));
@@ -65,43 +68,57 @@ exports.prepareDocuments = function(n, callback){
                 
                 // Die Featurevektoren sind nun nach tfidf Relevanz absteigend sortiert, d.h.
                 // alle Vektoren enthalten die gleichen Attribute in der gleichen Reihenfolge
-                console.log("Save features sparse...");
+              //  console.log("Save features sparse...");
                 saveSparse(trainFeatureVectors,testFeatureVectors);
                 callback(null, true);
-            }
+            }*/
             mongo.disconnect();
             
         }
     });
 }
 
-
+// Bedeutung der regex
+// \w bedeutet sonderzeichen, underscores
+// \s beduetet alle whitespaces
+// /gi bedeutet global und case insensitive
+// Problem.. er replaced auch die Umlaute :D
 function getRecipeDivText(htmlDocuments) {
     var result = [];
     htmlDocuments.forEach(function(val, idx) {
         var $ = cheerio.load(val.text);
         $('script').remove();
         $('style').remove();
+        
     	result.push({
-    	   text : $('.instructions').text(),
+    	   text : $('.instructions').text().toLowerCase().replace(/[^\w\s Ä ä Ü ü Ö ö]/gi, '').replace(/[0-9]/g, ""),
     	   label : val.italian
     	});
+    	
     });
+    
+    console.log(result);
     return result;
 }
-// returns the receipts instructions (lower cased) from the given html
-// not tested yet
+// Bedeutung der regex
+// ^ Verneinung
+// \w bedeutet sonderzeichen, underscores
+// \s beduetet alle whitespaces
+// /gi bedeutet global und case insensitive
+// Problem.. er replaced auch die Umlaute :D
 function getRecipeBodyText(htmlDocuments) {
     var result = [];
     htmlDocuments.forEach(function(val, idx) {
         var $ = cheerio.load(val.text);
         $('script').remove();
         $('style').remove();
+    
     	result.push({
-    	   text : $('body').text(),
+    	   text : $('body').text().toLowerCase().replace(/[^\w\s Ä ä Ü ü Ö ö]/gi, '').replace(/[0-9]/g, ""),
     	   label : val.italian
     	});
     });
+    console.log(result[0].text);
     return result;
 }
 

@@ -14,7 +14,7 @@ function retrieveFromDb(){
 
 }
 
-exports.prepareDocuments = function(callback){
+exports.prepareDocuments = function(n, callback){
     
     mongo.getDocuments(function(err, res) {
         // res: [{text:"<html>...", label:TRUE}, {text:...}]
@@ -22,7 +22,7 @@ exports.prepareDocuments = function(callback){
             // [{text:"the peter pan", label:TRUE}, {text:...}]
             var documents = getRecipeBodyText(res);
             // [{text:"the peter pan", label:TRUE}, {text:...}]
-            var documents = getRecipeDivText(res); //alternativ
+    //        var documents = getRecipeDivText(res); //alternativ
             // [{words:["the", peter", "pan"], label:TRUE}, {words:...}]
             var docWordLists = documentToWordList(documents);
             // [{words:"peter", "pan"], label:TRUE}, {words:...}]
@@ -42,16 +42,22 @@ exports.prepareDocuments = function(callback){
             
             var dfObject = tfidfResult.df;
             
-            var featureSelectionResult = selectFeatures(trainFeatureVectors, testFeatureVectors, dfObject, 50);
-            // [{vec:{"pan":0.7, "peter":0.4}, label:TRUE}, {vec:...}]
-            trainFeatureVectors = featureSelectionResult.train;
-            // [{vec:{"pan":0.7, "peter":0.4}, label:TRUE}, {vec:...}]
-            testFeatureVectors = featureSelectionResult.test;
+            var featureSelectionResult = selectFeatures(trainFeatureVectors, testFeatureVectors, dfObject, n);
+            if(featureSelectionResult == false){
+                callback(new Error("N is bigger than number of features!"));
+            } else {
+                // [{vec:{"pan":0.7, "peter":0.4}, label:TRUE}, {vec:...}]
+                trainFeatureVectors = featureSelectionResult.train;
+                // [{vec:{"pan":0.7, "peter":0.4}, label:TRUE}, {vec:...}]
+                testFeatureVectors = featureSelectionResult.test;
+                
+                // Die Featurevektoren sind nun nach tfidf Relevanz absteigend sortiert, d.h.
+                // alle Vektoren enthalten die gleichen Attribute in der gleichen Reihenfolge
+                
+                saveSparse(trainFeatureVectors,testFeatureVectors);
+                callback(null, true);
+            }
             
-            // Die Featurevektoren sind nun nach tfidf Relevanz absteigend sortiert, d.h.
-            // alle Vektoren enthalten die gleichen Attribute in der gleichen Reihenfolge
-            
-            saveSparse(trainFeatureVectors,testFeatureVectors);
         }
     });
 }
@@ -82,8 +88,8 @@ function getRecipeBodyText(htmlDocuments) {
     	   text : $('body').text(),
     	   label : val.italian
     	});
-        
     });
+    return result;
 }
 
 function documentToWordList(documents){
@@ -272,6 +278,11 @@ function log(base, number) {
 function selectFeatures(trainFeatureVectors, testFeatureVectors, df, n){
     // Sort words in trainingSet according to document frequency
     var keysSorted = Object.keys(df).sort(function(a,b){return df[b]-df[a]});
+    
+    if(n > keysSorted.length){
+        return false;
+    }
+    
     var trainRes = Array();
     var testRes = Array();
     // Save the training feature vectors with these keys
@@ -417,7 +428,7 @@ function saveArffHead(wordIndexMap, stream) {
         
     }
 }
-
+/*
 // Mocha tests for Textkit
 describe('Testing Textkit', function(){
     it('Stopwords and Stemming', function(){
@@ -436,4 +447,4 @@ describe('Testing Textkit', function(){
         var train = [{words:"one", label:true},{words:"two", label:true}, {words:"three", label:true}, {words:"four", label:true}, {words:"five", label:true}];
         console.log(selectTestTrainRandom(train));
     });
-});
+});*/

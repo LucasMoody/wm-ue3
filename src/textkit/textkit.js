@@ -82,8 +82,8 @@ function getRecipeBodyText(htmlDocuments) {
     	   text : $('body').text(),
     	   label : val.italian
     	});
-        
     });
+    return result;
 }
 
 function documentToWordList(documents){
@@ -417,7 +417,7 @@ function saveArffHead(wordIndexMap, stream) {
         
     }
 }
-
+/*
 // Mocha tests for Textkit
 describe('Testing Textkit', function(){
     it('Stopwords and Stemming', function(){
@@ -436,4 +436,4 @@ describe('Testing Textkit', function(){
         var train = [{words:"one", label:true},{words:"two", label:true}, {words:"three", label:true}, {words:"four", label:true}, {words:"five", label:true}];
         console.log(selectTestTrainRandom(train));
     });
-});
+});*/

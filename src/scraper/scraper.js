@@ -5,37 +5,6 @@ var mongo = require("../dbconnection/mongo-con.js");
 // Able to scrape a smaller number than 30 on the page.
 function scrapeSmall(url,amount, italian){
     
-
-<<<<<<< HEAD
-     request(url,function(err, resp, body){
-         if(!err){
-              
-     $ = cheerio.load(body);
-     
-     $('.rowclick').each(function(index){
-           
-     var a = $(this).attr('data-url');
-       var urlIntern = "http://chefkoch.de"+a;
-       if(index<amount){
-          
-           var dataset = {
-               url : urlIntern,
-               text : body,
-               italian : italian
-           };
-           
-           console.log(dataset.url);
-          
-           mongo.storeWebpage(dataset,function(err,succ){
-          
-            if(err){
-                console.error(err);
-            }    
-             
-          });
-           
-       }
-=======
     request(url,function(err, resp, body){
         if(!err){
 
@@ -53,8 +22,7 @@ function scrapeSmall(url,amount, italian){
                         italian : italian
                     };
 
-                    console.log(dataset.url);
->>>>>>> 480ed057adc4d4e10015ac85eb2a3f0d498d454b
+                    console.log(dataset.italian);
     
                     mongo.storeWebpage(dataset,function(err,succ){
     
@@ -73,7 +41,7 @@ function scrapeSmall(url,amount, italian){
 }
 
 // Scrapes all the links on the url
-function scrapeChefkoch(url,max,italian){
+function scrapeChefkoch(url,italian){
     
     request(url,function(err, resp, body){
         if(!err){
@@ -88,29 +56,17 @@ function scrapeChefkoch(url,max,italian){
                     text : body,
                     italian : italian
                 };
-                console.log(dataset.url);
-           
-<<<<<<< HEAD
-          mongo.storeWebpage(dataset,function(err,succ){
-          
-            if(err){
-                console.error(err);
-            }    
-             
-          });
-          
-          
-     });
-=======
+                console.log(dataset.italian);
+
                 mongo.storeWebpage(dataset,function(err,succ){
                     if(err){
                         console.error(err);
                     } else {
                         console.log("mongo store finished");
                     }
-                });
+                })
             });
->>>>>>> 480ed057adc4d4e10015ac85eb2a3f0d498d454b
+
          }
     });
 }
@@ -134,7 +90,7 @@ function scrapeAll(startURL,amount,italian){
     while(count<intvalue){
        
         tempURL = tempURL.replace("s"+oldPage,"s"+newPage);
-        scrapeChefkoch(tempURL);
+        scrapeChefkoch(tempURL,italian);
         oldPage=newPage;
         newPage+=30;
         count++;
@@ -163,22 +119,20 @@ function getContent(html){
 // Call functions
 
 // Italian 500
-<<<<<<< HEAD
 //scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",500,true);
-
 
 // International
 // Afrika 100
 scrapeAll("http://www.chefkoch.de/rs/s0t101/Afrika-Rezepte.html",100,false);
 
 // Spain 100 
-scrapeAll("http://www.chefkoch.de/rs/s0t29,43/Europa-Spanien-Rezepte.html",100,false);
+//scrapeAll("http://www.chefkoch.de/rs/s0t29,43/Europa-Spanien-Rezepte.html",100,false);
 
 // German 100
-scrapeAll("http://www.chefkoch.de/rs/s0t29,65/Europa-Deutschland-Rezepte.html",100,false);
+//scrapeAll("http://www.chefkoch.de/rs/s0t29,65/Europa-Deutschland-Rezepte.html",100,false);
 
 // French 100
-scrapeAll("http://www.chefkoch.de/rs/s0t29,84/Europa-Frankreich-Rezepte.html",100,false);
+//scrapeAll("http://www.chefkoch.de/rs/s0t29,84/Europa-Frankreich-Rezepte.html",100,false);
 
 // Australia 100
-scrapeAll("http://www.chefkoch.de/rs/s0t145/Australien-Rezepte.html",100,false);
+//scrapeAll("http://www.chefkoch.de/rs/s0t145/Australien-Rezepte.html",100,false);

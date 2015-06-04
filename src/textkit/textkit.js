@@ -8,6 +8,7 @@ var mongo = require('../dbconnection/mongo-con.js'),
     TRAINING_DATA_FILE_NAME = "train.ds",
     TEST_DATA_FILE_NAME = "test.ds";
 var cheerio = require('cheerio');    
+var seedrandom = require('seedrandom');
 
 function retrieveFromDb(){
 
@@ -119,8 +120,38 @@ function stemAndStop(documents){
     return result;
 }
 
-function selectTestTrainRandom(docWordLists){
+function selectTestTrainRandom(docWordLists, seed){
+    var resTrain = Array();
+    var resTest = Array();
     
+    var shuffled = shuffle(docWordLists);
+    
+    for(var i=0; i<docWordLists.length; i++){
+        if(i<(docWordLists.length/2)){
+            resTrain.push(docWordLists[i]);
+        } else{
+            resTest.push(docWordLists[i]);
+        }
+    }
+    return {test:resTest, train:resTrain};
+}
+
+function shuffle(array) {
+    var randomat = seedrandom('myseed');
+    var currentIndex = array.length, temporaryValue, randomIndex;
+
+    // While there remain elements to shuffle...
+    while (0 !== currentIndex) {
+        // Pick a remaining element...
+        randomIndex = Math.floor(randomat() * currentIndex);
+        currentIndex -= 1;
+    
+        // And swap it with the current element.
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
+  }
+  return array;
 }
 
 function calcTfIdf(trainDocs, testDocs){
@@ -156,7 +187,6 @@ function calcTfIdf(trainDocs, testDocs){
             tf[keys[k]] = tf[keys[k]] / wordlist.length;
         }
     }
-    console.log(tfTrainArray);
     // Save df Object before making it idf
     // http://stackoverflow.com/questions/6089058/nodejs-how-to-clone-a-object
     var dfObjRes = JSON.parse(JSON.stringify(idfObject));
@@ -388,15 +418,6 @@ function saveArffHead(wordIndexMap, stream) {
     }
 }
 
-
-    //   var train = [{words:["this", "is", "a", "sample"], label:true}, {words:["this", "is", "another", "example"], label:true}];
-    //     var test = [{words:["this", "is", "a", "sample"], label:true}, {words:["this", "is", "another", "example"], label:false}];
-    //     var l2 = log(10, 2);
-    //     var result = {train:[{vec:{"this":0,"is":0, "a":(2/4)*l2, "sample":(1/4)*l2}, label:true}, {vec:{"this":0,"is":0, "another":(2/4)*l2, "example":(3/4)*l2}, label:true}], test:[{vec:{"this":0,"is":0, "a":(2/4)*l2, "sample":(1/4)*l2}, label:true}, {vec:{"this":0,"is":0, "another":(2/4)*l2, "example":(3/4)*l2}, label:false}], df:{"peter":2,"pan":1, "geht":1, "paul":1}};
-    //     should.deepEqual(calcTfIdf(train, test), result);
-
-
-
 // Mocha tests for Textkit
 describe('Testing Textkit', function(){
     it('Stopwords and Stemming', function(){
@@ -410,5 +431,9 @@ describe('Testing Textkit', function(){
         var l2 = log(10, 2);
         var result = {train:[{vec:{"this":0,"is":0, "a":(2/5)*l2, "sample":(1/5)*l2}, label:true}, {vec:{"this":0,"is":0, "another":(2/7)*l2, "example":(3/7)*l2}, label:true}], test:[{vec:{"this":0,"is":0, "a":(2/5)*l2, "sample":(1/5)*l2}, label:true}, {vec:{"this":0,"is":0, "another":(2/7)*l2, "example":(3/7)*l2}, label:false}], df:{"this":2, "is":2, "a":1, "sample":1, "another":1, "example":1}};
         should.deepEqual(calcTfIdf(train, test), result);
+    });
+    it('Random Selection', function(){
+        var train = [{words:"one", label:true},{words:"two", label:true}, {words:"three", label:true}, {words:"four", label:true}, {words:"five", label:true}];
+        console.log(selectTestTrainRandom(train));
     });
 });

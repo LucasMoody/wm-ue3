@@ -5,35 +5,28 @@ var mongo = require("../dbconnection/mongo-con.js");
 // Able to scrape a smaller number than 30 on the page.
 function scrapeSmall(url,amount, italian){
     
-    request(url,function(err, resp, body){
+    request(url, function(err, resp, body){
         if(!err){
-
-            $ = cheerio.load(body);
-
-            $('.rowclick').each(function(index){
-
-                var a = $(this).attr('data-url');
+            var $ = cheerio.load(body);
+            $('a.search-result-title').each(function(index){
+                var a = $(this).attr('href');
                 var urlIntern = "http://chefkoch.de"+a;
-                if(index<amount){
 
-                    var dataset = {
-                        url : urlIntern,
-                        text : body,
-                        italian : italian
-                    };
-
-                    console.log(dataset.italian);
-    
-                    mongo.storeWebpage(dataset,function(err,succ){
-    
-                        if(err){
-                            console.error(err);
-                        } else {
-                            console.log("mongo store finished");
-                        }    
-    
+                if (index < amount) {
+                    request(urlIntern, function(err, response, html){
+                        var dataset = {
+                            url : urlIntern,
+                            text : html,
+                            italian : italian
+                        };
+                        mongo.storeWebpage(dataset,function(err,succ){
+                            if(err){
+                                console.error(err);
+                            } else {
+                                console.log("mongo store finished");
+                            }
+                        });
                     });
-
                 }
             });
         }
@@ -46,28 +39,28 @@ function scrapeChefkoch(url,italian){
     request(url,function(err, resp, body){
         if(!err){
              
-            $ = cheerio.load(body);
-            $('.rowclick').each(function(index){
-                var a = $(this).attr('data-url');
+            var $ = cheerio.load(body);
+            $('a.search-result-title').each(function(index){
+                var a = $(this).attr('href');
                 var urlIntern = "http://chefkoch.de"+a;
-      
-                var dataset = {
-                    url : urlIntern,
-                    text : body,
-                    italian : italian
-                };
-                console.log(dataset.italian);
 
-                mongo.storeWebpage(dataset,function(err,succ){
-                    if(err){
-                        console.error(err);
-                    } else {
-                        console.log("mongo store finished");
-                    }
-                })
+                request(urlIntern, function(err, response, html){
+                    var dataset = {
+                        url : urlIntern,
+                        text : html,
+                        italian : italian
+                    };
+                    mongo.storeWebpage(dataset,function(err,succ){
+                        if(err){
+                            console.error(err);
+                        } else {
+                            console.log("mongo store finished");
+                        }
+                    });
+                });
+
             });
-
-         }
+        }
     });
 }
 // Scrape all links to the receipt page
@@ -101,29 +94,17 @@ function scrapeAll(startURL,amount,italian){
     
 }
 
-// Get the instruction text from the URLs (receipt)
-// Problem: Can only print the output but can't implement a return statement...
-function getContent(html){
-     
-     $ = cheerio.load(html);
-    
-     $('.instructions').filter(function(){
-         
-         var output = $(this).text().trim().toLowerCase();
-         return output;
-        
-     });
-        
-}
 
 // Call functions
 
 // Italian 500
-//scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",500,true);
+
+scrapeAll("http://www.chefkoch.de/rs/s0t29,28/Europa-Italien-Rezepte.html",500,true);
+
 
 // International
 // Afrika 100
-scrapeAll("http://www.chefkoch.de/rs/s0t101/Afrika-Rezepte.html",100,false);
+//scrapeAll("http://www.chefkoch.de/rs/s0t101/Afrika-Rezepte.html",100,false);
 
 // Spain 100 
 //scrapeAll("http://www.chefkoch.de/rs/s0t29,43/Europa-Spanien-Rezepte.html",100,false);

@@ -1,7 +1,7 @@
 var mongoose = require('mongoose');
 var Webpage = require('./models/webpage.js');
-
-mongoose.connect('mongodb://127.0.0.1:27017/uebung3');
+ 
+mongoose.connect('mongodb://127.0.0.1:27017/uebung3neu');
 
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB Connection Error:'));
@@ -21,11 +21,11 @@ exports.storeWebpage = function(siteInfo, callback){
 }
 
 exports.getDocuments = function(callback) {
-    Webpage.find({}, 'text italian', function(err, res) {
+    Webpage.find({}, function(err, res) {
         if(err){
           callback(err);
         } else {
           callback(undefined, res);
         }
-    });
+    }).limit(50);
 }

@@ -1,39 +1,42 @@
-var snowball = require('node-snowball');
-var stop_words=require('multi-stopwords')(['de']);
-var should = require('should');
-var mongo = require('../dbconnection/mongo-con.js'),
+var snowball = require('node-snowball'),
+    stop_words=require('multi-stopwords')(['de']),
+    should = require('should'),
+    mongo = require('../dbconnection/mongo-con.js'),
     natural = require("natural"),
     fs = require('fs'),
     path = require('path'),
-    TRAINING_DATA_FILE_NAME = "train.ds",
-    TEST_DATA_FILE_NAME = "test.ds";
-var cheerio = require('cheerio');    
-var seedrandom = require('seedrandom');
+    TRAINING_DATA_FILE_NAME = "recipes-train",
+    TEST_DATA_FILE_NAME = "recipes-test",
+    cheerio = require('cheerio'),   
+    seedrandom = require('seedrandom');
 
-function retrieveFromDb(){
-
-}
 
 exports.prepareDocuments = function(n, callback){
     
     mongo.getDocuments(function(err, res) {
         // res: [{text:"<html>...", label:TRUE}, {text:...}]
         if (!err) {
+            console.log("Extract text from html...");
             // [{text:"the peter pan", label:TRUE}, {text:...}]
-            var documents = getRecipeBodyText(res);
+
+            //var documents = getRecipeBodyText(res);
+            
             // [{text:"the peter pan", label:TRUE}, {text:...}]
-    //        var documents = getRecipeDivText(res); //alternativ
+            var documents = getRecipeDivText(res); //alternativ
             // [{words:["the", peter", "pan"], label:TRUE}, {words:...}]
+     //       console.log("Build word list from text string...");
             var docWordLists = documentToWordList(documents);
             // [{words:"peter", "pan"], label:TRUE}, {words:...}]
-            docWordLists = stemAndStop(docWordLists);
-            
+       //     console.log("Stemming and stopwords...");
+            docWordLists = stemAndStop(docWordLists);            
+            console.log("Split data randomly...");
             var randomSelection = selectTestTrainRandom(docWordLists);
             // [{words:"peter", "pan"], label:TRUE}, {words:...}]
             var trainDocWordLists = randomSelection.train;
             // [{words:"peter", "pan"], label:TRUE}, {words:...}]
             var testDocWordLists = randomSelection.test;
             
+           // console.log("Calculate tfidf...");
             var tfidfResult = calcTfIdf(trainDocWordLists, testDocWordLists);
             // [{vec:{"peter":0.4, "pan":0.7}, label:TRUE}, {vec:...}]
             var trainFeatureVectors = tfidfResult.train;
@@ -42,7 +45,9 @@ exports.prepareDocuments = function(n, callback){
             
             var dfObject = tfidfResult.df;
             
+            //console.log("Select features with highest df...");
             var featureSelectionResult = selectFeatures(trainFeatureVectors, testFeatureVectors, dfObject, n);
+            
             if(featureSelectionResult == false){
                 callback(new Error("N is bigger than number of features!"));
             } else {
@@ -53,42 +58,59 @@ exports.prepareDocuments = function(n, callback){
                 
                 // Die Featurevektoren sind nun nach tfidf Relevanz absteigend sortiert, d.h.
                 // alle Vektoren enthalten die gleichen Attribute in der gleichen Reihenfolge
-                
-                saveSparse(trainFeatureVectors,testFeatureVectors);
+
+                console.log("Save features sparse...");
+                saveSparseDs(trainFeatureVectors,testFeatureVectors, n);
+                saveSparseArff(trainFeatureVectors,testFeatureVectors, n);
                 callback(null, true);
             }
-            
         }
     });
 }
 
-
+// Bedeutung der regex
+// \w bedeutet sonderzeichen, underscores
+// \s beduetet alle whitespaces
+// /gi bedeutet global und case insensitive
+// Problem.. er replaced auch die Umlaute :D
 function getRecipeDivText(htmlDocuments) {
     var result = [];
     htmlDocuments.forEach(function(val, idx) {
         var $ = cheerio.load(val.text);
+
+        //TODO brauchen wird das????
         $('script').remove();
         $('style').remove();
+        
     	result.push({
-    	   text : $('.instructions').text(),
+    	   text : $('div#rezept-zubereitung').text().toLowerCase().replace(/[^\wäüöß]+/gi, ' '),
     	   label : val.italian
     	});
+    	
     });
+    
+    console.log(result);
     return result;
 }
-// returns the receipts instructions (lower cased) from the given html
-// not tested yet
+// Bedeutung der regex
+// ^ Verneinung
+// \w bedeutet sonderzeichen, underscores
+// \s beduetet alle whitespaces
+// /gi bedeutet global und case insensitive
+// Problem.. er replaced auch die Umlaute :D
 function getRecipeBodyText(htmlDocuments) {
     var result = [];
     htmlDocuments.forEach(function(val, idx) {
         var $ = cheerio.load(val.text);
         $('script').remove();
         $('style').remove();
+    
     	result.push({
-    	   text : $('body').text(),
+    	   text : $('body').text().toLowerCase().replace(/[^\p{l}\s]/gi, '').replace(/[0-9]/g, "").replace(/\s+/g, ' '),
     	   label : val.italian
     	});
     });
+    console.log(result[0].text);
     return result;
 }
 
@@ -199,7 +221,7 @@ function calcTfIdf(trainDocs, testDocs){
     // Iterate through all df terms and make them idf
     for(var l=0, keys=Object.keys(idfObject); l<keys.length; l++){
         // Save logarithmic inverted document frequency
-        idfObject[keys[l]] = log(10, (trainDocs.length / idfObject[keys[l]]));
+        idfObject[keys[l]] = log(10, ((1+trainDocs.length) / idfObject[keys[l]]));
     }
     // Calculate and save the tfidf value for every term
     var tfIdfTrainArray = Array();
@@ -242,11 +264,7 @@ function calcTfIdf(trainDocs, testDocs){
     for(var m=0; m<tfTestArray.length; m++){
         var tfidf = {};
         for(var n=0, keys=Object.keys(tfTestArray[m]); n<keys.length; n++){
-            console.log(keys[n]);
-            console.log(tfTestArray[m][keys[n]]);
-            console.log(idfObject[keys[n]]);
             tfidf[keys[n]] = tfTestArray[m][keys[n]] * idfObject[keys[n]];
-            console.log(tfidf[keys[n]]);
         }
         tfIdfTestArray.push(tfidf);
     }
@@ -313,6 +331,133 @@ function selectFeatures(trainFeatureVectors, testFeatureVectors, df, n){
     return {train:trainRes, test:testRes};
 }
 
+function saveSparseDs(trainFeatureVectors, testFeatureVectors, n){
+  //  var trainingWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8'),
+    //    testWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TEST_DATA_FILE_NAME, 'utf8'),
+    var testFileString = '',
+        trainingFileString = '';
+    //write training set data to file
+    trainFeatureVectors.forEach(function(val, idx) {
+        if(val.label) {
+            trainingFileString+='1';
+            //testWriteStream.write("1");
+            
+        } else {
+            trainingFileString+='1';
+            //testWriteStream.write("0");
+        }
+        trainingFileString+=' ';
+        //testWriteStream.write(" ");
+        for (var index = 0, keys=Object.keys(val.vec); index<keys.length; index++) {
+            if (val.vec[keys[index]]) {
+                trainingFileString += index + ':' + val.vec[keys[index]] + " ";
+               //testWriteStream.write(index + ":" + val.vec[keys[index]] + " ");
+           }
+        }
+        trainingFileString+='\n';
+        //testWriteStream.write("\n");
+    });
+    
+    
+    //write test set data to file
+    testFeatureVectors.forEach(function(val, idx) {
+        if(val.label) {
+            testFileString+='1';
+            //testWriteStream.write("1");
+            
+        } else {
+            testFileString+='1';
+            //testWriteStream.write("0");
+        }
+        testFileString+=' ';
+        //testWriteStream.write(" ");
+        for (var index = 0, keys=Object.keys(val.vec); index<keys.length; index++) {
+            if (val.vec[keys[index]]) {
+                testFileString += index + ':' + val.vec[keys[index]] + " ";
+               //testWriteStream.write(index + ":" + val.vec[keys[index]] + " ");
+           }
+        }
+        testFileString+='\n';
+        //testWriteStream.write("\n");
+    });
+    fs.writeFile(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME + "-" + n + ".ds", trainingFileString, function (err) {
+        if (err) throw err;
+        console.log('It\'s saved!');
+    });   
+    fs.writeFile(path.join(__dirname, '../classifier/data/') + TEST_DATA_FILE_NAME + "-" + n + ".ds", testFileString, function (err) {
+        if (err) throw err;
+        console.log('It\'s saved!');
+    });   
+//    trainingWriteStream.end();
+//    testWriteStream.end();
+    
+}
+
+function saveSparseArff(trainFeatureVectors, testFeatureVectors, n){
+    var testFileString = '',
+        trainingFileString = '',
+        headerString = '',
+        features;
+    if (trainFeatureVectors.length < 1) {
+        throw new Error("trainFeatureVector is empty");
+    }
+    headerString+='@relation recipes\n';
+    features = Object.keys(trainFeatureVectors[0].vec);
+    features.forEach(function(val, idx) {
+        headerString+='@attribute ' + '"' + val + '"' + ' numeric\n'
+    });
+    headerString+='@attribute italian {1,0}\n'
+
+    //write training set data to file
+    trainingFileString+='@data\n';
+    testFeatureVectors.forEach(function(val, idx) {
+        trainingFileString+='{ ';
+        for (var index = 0, keys=Object.keys(val.vec); index<keys.length; index++) {
+            if (val.vec[keys[index]]) {
+                trainingFileString += index + ' ' + val.vec[keys[index]] + ",";
+           }
+        }
+        if(val.label) {
+            trainingFileString+=features.length + ' 1';
+            
+        } else {
+            trainingFileString+=features.length + ' 0';
+        }
+        trainingFileString+='}\n';
+    });
+    
+    
+    //write test set data to file
+    testFileString+='@data\n';
+    trainFeatureVectors.forEach(function(val, idx) {
+        testFileString+='{ ';
+        for (var index = 0, keys=Object.keys(val.vec); index<keys.length; index++) {
+            if (val.vec[keys[index]]) {
+                testFileString += index + ' ' + val.vec[keys[index]] + ",";
+           }
+        }
+        if(val.label) {
+            testFileString+=features.length + ' 1';
+            
+        } else {
+            testFileString+=features.length + ' 0';
+        }
+        testFileString+='}\n';
+    });
+
+    fs.writeFile(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME + "-" + n + ".arff", headerString + trainingFileString, function (err) {
+        if (err) throw err;
+        console.log('It\'s saved!');
+    });   
+    fs.writeFile(path.join(__dirname, '../classifier/data/') + TEST_DATA_FILE_NAME + "-" + n + ".arff", headerString + testFileString, function (err) {
+        if (err) throw err;
+        console.log('It\'s saved!');
+    });   
+//    trainingWriteStream.end();
+//    testWriteStream.end();
+    
+}
+
 function saveSparse(trainFeatureVectors, testFeatureVectors){
         //maps index to a word e.g. money is word with index 10
     var wordIndexMap = {},
@@ -321,6 +466,9 @@ function saveSparse(trainFeatureVectors, testFeatureVectors){
         
     //determine word indices for each word in trainingset
     trainFeatureVectors.forEach(function(val, idx) {
+        
+        var keys = Object.keys(val.vec);
+        
         for (var word in val.vec) {
             if (val.vec.hasOwnProperty(word) && !(word in wordIndexMap)) {
                 wordIndexMap[curNumOfIndices] = word;
@@ -337,7 +485,7 @@ function saveSparse(trainFeatureVectors, testFeatureVectors){
             }
         }    
     });
-    
+
     saveDs(wordIndexMap, trainFeatureVectors, testFeatureVectors);
 }
 
@@ -347,27 +495,33 @@ function saveDs(wordIndexMap, trainFeatureVectors, testFeatureVectors) {
     //write training set data to file
     trainFeatureVectors.forEach(function(val, idx) {
         if(val.label) {
-            trainingWriteStream.write(1);
+            trainingWriteStream.write("1");
             
         } else {
-            trainingWriteStream.write(0);
+            trainingWriteStream.write("0");
         }
         trainingWriteStream.write(" ");
+   //     console.log(Object.keys(wordIndexMap).length);
         for (var index = 0; index<Object.keys(wordIndexMap).length; index++) {
+            if((index % 1000) == 0){
+    //             console.log(index);
+            }
+           
             if (wordIndexMap[index] in val.vec) {
                 trainingWriteStream.write(index + ":" + val.vec[wordIndexMap[index]] + " ");
             }
         }
         trainingWriteStream.write("\n");
     });
+
     
     //write test set data to file
     testFeatureVectors.forEach(function(val, idx) {
         if(val.label) {
-            testWriteStream.write(1);
+            testWriteStream.write("1");
             
         } else {
-            testWriteStream.write(0);
+            testWriteStream.write("0");
         }
         testWriteStream.write(" ");
         for (var index = 0; index<Object.keys(wordIndexMap).length; index++) {
@@ -377,8 +531,10 @@ function saveDs(wordIndexMap, trainFeatureVectors, testFeatureVectors) {
         }
         testWriteStream.write("\n");
     });
+
     trainingWriteStream.end();
     testWriteStream.end();
+ 
 }
 
 function saveArff(wordIndexMap, trainFeatureVectors, testFeatureVectors) {
@@ -445,6 +601,6 @@ describe('Testing Textkit', function(){
     });
     it('Random Selection', function(){
         var train = [{words:"one", label:true},{words:"two", label:true}, {words:"three", label:true}, {words:"four", label:true}, {words:"five", label:true}];
-        console.log(selectTestTrainRandom(train));
+        .log(selectTestTrainRandom(train));
     });
 });*/

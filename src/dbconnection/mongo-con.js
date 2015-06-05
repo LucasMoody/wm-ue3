@@ -27,5 +27,5 @@ exports.getDocuments = function(callback) {
         } else {
           callback(undefined, res);
         }
-    }).limit(50);
+    });
 }

@@ -88,8 +88,6 @@ function getRecipeDivText(htmlDocuments) {
     	});
     	
     });
-    
-    console.log(result);
     return result;
 }
 // Bedeutung der regex
@@ -110,7 +108,6 @@ function getRecipeBodyText(htmlDocuments) {
     	   label : val.italian
     	});
     });
-    console.log(result[0].text);
     return result;
 }
 

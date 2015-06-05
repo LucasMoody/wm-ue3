@@ -340,7 +340,7 @@ function saveSparseDs(trainFeatureVectors, testFeatureVectors, n){
             //testWriteStream.write("1");
             
         } else {
-            trainingFileString+='1';
+            trainingFileString+='0';
             //testWriteStream.write("0");
         }
         trainingFileString+=' ';
@@ -363,7 +363,7 @@ function saveSparseDs(trainFeatureVectors, testFeatureVectors, n){
             //testWriteStream.write("1");
             
         } else {
-            testFileString+='1';
+            testFileString+='0';
             //testWriteStream.write("0");
         }
         testFileString+=' ';
@@ -407,7 +407,7 @@ function saveSparseArff(trainFeatureVectors, testFeatureVectors, n){
 
     //write training set data to file
     trainingFileString+='@data\n';
-    testFeatureVectors.forEach(function(val, idx) {
+    trainFeatureVectors.forEach(function(val, idx) {
         trainingFileString+='{ ';
         for (var index = 0, keys=Object.keys(val.vec); index<keys.length; index++) {
             if (val.vec[keys[index]]) {
@@ -426,7 +426,7 @@ function saveSparseArff(trainFeatureVectors, testFeatureVectors, n){
     
     //write test set data to file
     testFileString+='@data\n';
-    trainFeatureVectors.forEach(function(val, idx) {
+    testFeatureVectors.forEach(function(val, idx) {
         testFileString+='{ ';
         for (var index = 0, keys=Object.keys(val.vec); index<keys.length; index++) {
             if (val.vec[keys[index]]) {

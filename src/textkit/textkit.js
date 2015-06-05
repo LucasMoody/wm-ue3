@@ -113,7 +113,7 @@ function getRecipeBodyText(htmlDocuments) {
 
 function documentToWordList(documents){
     var result = [],
-        tokenizer = new natural.TreebankWordTokenizer();
+        tokenizer = new natural.WordTokenizer();
     documents.forEach(function(val, idx) {
         result.push({
             words : tokenizer.tokenize(val.text),

@@ -45,7 +45,7 @@ exports.startSVMClassifier = function(n, costs, probability, resultFileName) {
             .progress(function(progress){
                 console.log('training progress: %d%', Math.round(progress*100));
             })
-            .then(function () {
+            .then(function (model) {
                 return clf.evaluate(testingSet);
             });
     }).done(function (evaluationReport) {

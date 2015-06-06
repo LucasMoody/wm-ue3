@@ -4,7 +4,7 @@ var textkit = require('./textkit/textkit.js'),
 
 function prepareFiles(n) {
 	try {
-	    textkit.prepareDocuments(n, function(err, succ) {
+	    textkit.prepareDocuments(n, false, function(err, succ) {
 	    	svm.startSVMClassifier(n,50,false,'ex3.2-'+n+'.txt');
 	    	if (err) throw err;
 	    	prepareFiles(n*2);
@@ -16,7 +16,7 @@ function prepareFiles(n) {
 }
 
 function ex31() {
-	textkit.prepareDocuments(1000, function(err, succ) {
+	textkit.prepareDocuments(1000, false, function(err, succ) {
 		if(err) throw err;
     	svm.startSVMClassifier(1000,50,false,'ex3.1.txt');
     });

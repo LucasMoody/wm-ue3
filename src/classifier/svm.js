@@ -21,7 +21,20 @@ exports.startSVMClassifier = function(n, costs, probability, resultFileName) {
         clf = new svm.CSVC({
             c: costs,
             kernelType:'LINEAR',
-            probability : probability
+            probability : probability,
+
+            //weka defaults
+            cacheSize : 40,
+            //actually it is not needed because of linear kernel
+            degree : 3,
+            eps : 0.01,
+            gamma : 0.0,
+            //actually it is not needed because we do not use EPSILON_SVR
+            epsilon : 0.1,
+            normalize : false,
+            //actually it is not needed because we do not use NU_SVR
+            nu : 0.5,
+            shrinking : true
         });
     Q.all([
         svm.read(trainFileName),

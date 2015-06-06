@@ -11,23 +11,27 @@ var snowball = require('node-snowball'),
     seedrandom = require('seedrandom');
 
 
-exports.prepareDocuments = function(n, callback){
+exports.prepareDocuments = function(n, onlyInstruction, callback){
     
     mongo.getDocuments(function(err, res) {
         // res: [{text:"<html>...", label:TRUE}, {text:...}]
         if (!err) {
             console.log("Extract text from html...");
-            // [{text:"the peter pan", label:TRUE}, {text:...}]
 
-            //var documents = getRecipeBodyText(res);
-            
             // [{text:"the peter pan", label:TRUE}, {text:...}]
-            var documents = getRecipeDivText(res); //alternativ
+            var documents;
+            if (onlyInstruction) {
+                console.log('Use only recipe instruction text...');
+                documents = getRecipeDivText(res); //alternativ
+            } else {
+                console.log('Use whole webpage text...');
+                documents = getRecipeBodyText(res);
+            }
             // [{words:["the", peter", "pan"], label:TRUE}, {words:...}]
-     //       console.log("Build word list from text string...");
+            console.log("Build word list from text string...");
             var docWordLists = documentToWordList(documents);
             // [{words:"peter", "pan"], label:TRUE}, {words:...}]
-       //     console.log("Stemming and stopwords...");
+            console.log("Stemming and stopwords...");
             docWordLists = stemAndStop(docWordLists);            
             console.log("Split data randomly...");
             var randomSelection = selectTestTrainRandom(docWordLists);
@@ -36,7 +40,7 @@ exports.prepareDocuments = function(n, callback){
             // [{words:"peter", "pan"], label:TRUE}, {words:...}]
             var testDocWordLists = randomSelection.test;
             
-           // console.log("Calculate tfidf...");
+            console.log("Calculate tfidf...");
             var tfidfResult = calcTfIdf(trainDocWordLists, testDocWordLists);
             // [{vec:{"peter":0.4, "pan":0.7}, label:TRUE}, {vec:...}]
             var trainFeatureVectors = tfidfResult.train;
@@ -45,7 +49,7 @@ exports.prepareDocuments = function(n, callback){
             
             var dfObject = tfidfResult.df;
             
-            //console.log("Select features with highest df...");
+            console.log("Select features with highest df...");
             var featureSelectionResult = selectFeatures(trainFeatureVectors, testFeatureVectors, dfObject, n);
             
             if(featureSelectionResult == false){
@@ -83,7 +87,7 @@ function getRecipeDivText(htmlDocuments) {
         $('style').remove();
         
     	result.push({
-    	   text : $('div#rezept-zubereitung').text().toLowerCase().replace(/[^\wäüöß]+/gi, ' '),
+    	   text : $('div#rezept-zubereitung').text().toLowerCase().replace(/[^\wäüöß]+/gi, ' ').replace(/[0-9]/g, "").replace(/\s+/g, ' '),
     	   label : val.italian
     	});
     	
@@ -104,7 +108,7 @@ function getRecipeBodyText(htmlDocuments) {
         $('style').remove();
     
     	result.push({
-    	   text : $('body').text().toLowerCase().replace(/[^\p{l}\s]/gi, '').replace(/[0-9]/g, "").replace(/\s+/g, ' '),
+    	   text : $('body').text().toLowerCase().replace(/[^\wäüöß]+/gi, ' ').replace(/[0-9]/g, "").replace(/\s+/g, ' '),
     	   label : val.italian
     	});
     });

@@ -1,6 +1,7 @@
 var snowball = require('node-snowball'),
     stop_words=require('multi-stopwords')(['de']),
     should = require('should'),
+    so = require('stringify-object'),
     mongo = require('../dbconnection/mongo-con.js'),
     natural = require("natural"),
     fs = require('fs'),
@@ -8,12 +9,18 @@ var snowball = require('node-snowball'),
     TRAINING_DATA_FILE_NAME = "recipes-train",
     TEST_DATA_FILE_NAME = "recipes-test",
     cheerio = require('cheerio'),   
-    seedrandom = require('seedrandom');
+    seedrandom = require('seedrandom'),
+    loggerStream,
+    logging = false;
 
 
-exports.prepareDocuments = function(n, onlyInstruction, callback){
+exports.prepareDocuments = function(n, onlyInstruction, callback, loggingOn){
     
     mongo.getDocuments(function(err, res) {
+        if (loggingOn) {
+          loggerStream = fs.createWriteStream(path.join(__dirname, 'results/') + 'ex2.txt', 'utf8');
+          logging = true;
+        }
         // res: [{text:"<html>...", label:TRUE}, {text:...}]
         if (!err) {
             console.log("Extract text from html...");
@@ -30,15 +37,25 @@ exports.prepareDocuments = function(n, onlyInstruction, callback){
             // [{words:["the", peter", "pan"], label:TRUE}, {words:...}]
             console.log("Build word list from text string...");
             var docWordLists = documentToWordList(documents);
+            if (logging) loggerStream.write('1. Dokument zu Wort Liste\n'+so(docWordLists[0]));
+
             // [{words:"peter", "pan"], label:TRUE}, {words:...}]
             console.log("Stemming and stopwords...");
-            docWordLists = stemAndStop(docWordLists);            
+            docWordLists = stemAndStop(docWordLists);
+            if(logging) loggerStream.write('2. Stoppwort-Filterung und Stemming\n'+so(docWordLists[0]));
+
             console.log("Split data randomly...");
             var randomSelection = selectTestTrainRandom(docWordLists);
             // [{words:"peter", "pan"], label:TRUE}, {words:...}]
             var trainDocWordLists = randomSelection.train;
             // [{words:"peter", "pan"], label:TRUE}, {words:...}]
             var testDocWordLists = randomSelection.test;
+
+            if (logging) {
+                // muss wegen der Nachvollziehbarkeit gemacht werden => kein Random
+                trainDocWordLists = docWordLists.slice(0,500);
+                testDocWordLists = docWordLists.slice(500,1000);
+            }
             
             console.log("Calculate tfidf...");
             var tfidfResult = calcTfIdf(trainDocWordLists, testDocWordLists);
@@ -46,12 +63,15 @@ exports.prepareDocuments = function(n, onlyInstruction, callback){
             var trainFeatureVectors = tfidfResult.train;
             // [{vec:{"peter":0.4, "pan":0.7}, label:TRUE}, {vec:...}]
             var testFeatureVectors = tfidfResult.test;
+            if (logging) loggerStream.write('3. Wort-Liste zu TF-IDF-Vektor\n'+so(trainFeatureVectors[0]));
+
             
             var dfObject = tfidfResult.df;
             
             console.log("Select features with highest df...");
             var featureSelectionResult = selectFeatures(trainFeatureVectors, testFeatureVectors, dfObject, n);
-            
+            if (logging) loggerStream.write('4. Einfache Feature-Selection\n'+so(featureSelectionResult.train[0]));            
+
             if(featureSelectionResult == false){
                 callback(new Error("N is bigger than number of features!"));
             } else {
@@ -69,6 +89,7 @@ exports.prepareDocuments = function(n, onlyInstruction, callback){
                 callback(null, true);
             }
         }
+        if (logging) loggerStream.end();
     });
 }
 
@@ -425,6 +446,7 @@ function saveSparseArff(trainFeatureVectors, testFeatureVectors, n){
             trainingFileString+=features.length + ' 0';
         }
         trainingFileString+='}\n';
+        if (logging && idx === 0) loggerStream.write('5. Sparse-Repräsentation \n'+headerString+trainingFileString);            
     });
     
     
@@ -459,132 +481,6 @@ function saveSparseArff(trainFeatureVectors, testFeatureVectors, n){
     
 }
 
-function saveSparse(trainFeatureVectors, testFeatureVectors){
-        //maps index to a word e.g. money is word with index 10
-    var wordIndexMap = {},
-        //start index counter with 0
-        curNumOfIndices = 0;
-        
-    //determine word indices for each word in trainingset
-    trainFeatureVectors.forEach(function(val, idx) {
-        
-        var keys = Object.keys(val.vec);
-        
-        for (var word in val.vec) {
-            if (val.vec.hasOwnProperty(word) && !(word in wordIndexMap)) {
-                wordIndexMap[curNumOfIndices] = word;
-                curNumOfIndices++;
-            }
-        }    
-    });
-    //determine word indices for each word in testset
-    testFeatureVectors.forEach(function(val, idx) {
-        for (var word in val.vec) {
-            if (val.vec.hasOwnProperty(word) && !(word in wordIndexMap)) {
-                wordIndexMap[curNumOfIndices] = word;
-                curNumOfIndices++;
-            }
-        }    
-    });
-
-    saveDs(wordIndexMap, trainFeatureVectors, testFeatureVectors);
-}
-
-function saveDs(wordIndexMap, trainFeatureVectors, testFeatureVectors) {
-    var trainingWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8'),
-        testWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8');
-    //write training set data to file
-    trainFeatureVectors.forEach(function(val, idx) {
-        if(val.label) {
-            trainingWriteStream.write("1");
-            
-        } else {
-            trainingWriteStream.write("0");
-        }
-        trainingWriteStream.write(" ");
-   //     console.log(Object.keys(wordIndexMap).length);
-        for (var index = 0; index<Object.keys(wordIndexMap).length; index++) {
-            if((index % 1000) == 0){
-    //             console.log(index);
-            }
-           
-            if (wordIndexMap[index] in val.vec) {
-                trainingWriteStream.write(index + ":" + val.vec[wordIndexMap[index]] + " ");
-            }
-        }
-        trainingWriteStream.write("\n");
-    });
-
-    
-    //write test set data to file
-    testFeatureVectors.forEach(function(val, idx) {
-        if(val.label) {
-            testWriteStream.write("1");
-            
-        } else {
-            testWriteStream.write("0");
-        }
-        testWriteStream.write(" ");
-        for (var index = 0; index<Object.keys(wordIndexMap).length; index++) {
-            if (wordIndexMap[index] in val.vec) {
-                testWriteStream.write(index + ":" + val.vec[wordIndexMap[index]] + " ");
-            }
-        }
-        testWriteStream.write("\n");
-    });
-
-    trainingWriteStream.end();
-    testWriteStream.end();
- 
-}
-
-function saveArff(wordIndexMap, trainFeatureVectors, testFeatureVectors) {
-    var trainingWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8'),
-        testWriteStream = fs.createWriteStream(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME, 'utf8');
-    //write training set data to file
-    
-    
-    trainFeatureVectors.forEach(function(val, idx) {
-        if(val.label) {
-            trainingWriteStream.write(1);
-            
-        } else {
-            trainingWriteStream.write(0);
-        }
-        trainingWriteStream.write(" ");
-        for (var index = 0; index<Object.keys(wordIndexMap).length; index++) {
-            if (wordIndexMap[index] in val.vec) {
-                trainingWriteStream.write(index + ":" + val.vec[wordIndexMap[index]] + " ");
-            }
-        }
-        trainingWriteStream.write("\n");
-    });
-    
-    //write test set data to file
-    testFeatureVectors.forEach(function(val, idx) {
-        if(val.label) {
-            testWriteStream.write(1);
-            
-        } else {
-            testWriteStream.write(0);
-        }
-        testWriteStream.write(" ");
-        for (var index = 0; index<Object.keys(wordIndexMap).length; index++) {
-            if (wordIndexMap[index] in val.vec) {
-                testWriteStream.write(index + ":" + val.vec[wordIndexMap[index]] + " ");
-            }
-        }
-        testWriteStream.write("\n");
-    });
-    trainingWriteStream.end();
-    testWriteStream.end();
-}
-
-function saveArffHead(wordIndexMap, stream) {
-    for (var index = 0; index<Object.keys(wordIndexMap).length; index++) {
-        
-    }
-}
 /*
 // Mocha tests for Textkit
 describe('Testing Textkit', function(){

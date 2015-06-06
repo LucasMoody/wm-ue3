@@ -30,6 +30,11 @@ function ex32() {
 	svm.startSVMClassifier(1000,50,true,'ex3.3.txt');
 }
 
-ex31();
+function ex2() {
+	textkit.prepareDocuments(10, false, console.log, true);
+}
+
+ex2();
+//ex31();
 //ex32();
 //ex33();

@@ -12,7 +12,8 @@ var snowball = require('node-snowball'),
     seedrandom = require('seedrandom'),
     loggerStream,
     logging = false,
-    instruction = false;
+    instruction = false,
+    trainPerc = 0.9;
 
 
 exports.prepareDocuments = function(n, onlyInstruction, callback, loggingOn){
@@ -47,10 +48,10 @@ exports.prepareDocuments = function(n, onlyInstruction, callback, loggingOn){
             if(logging) loggerStream.write('2. Stoppwort-Filterung und Stemming\n'+so(docWordLists[0]));
 
             console.log("Split data randomly...");
-            var randomSelection = selectTestTrainRandom(docWordLists);
-            // [{words:"peter", "pan"], label:TRUE}, {words:...}]
+            var randomSelection = selectTestTrainRandom(docWordLists, trainPerc);
+            // [{words:["peter", "pan"], label:TRUE}, {words:...}]
             var trainDocWordLists = randomSelection.train;
-            // [{words:"peter", "pan"], label:TRUE}, {words:...}]
+            // [{words:["peter", "pan"], label:TRUE}, {words:...}]
             var testDocWordLists = randomSelection.test;
 
             if (logging) {
@@ -93,6 +94,39 @@ exports.prepareDocuments = function(n, onlyInstruction, callback, loggingOn){
         }
         if (logging) loggerStream.end();
     });
+}
+
+function calcWordAccuries(wordList) {
+    var calcWordAccuriesMap = {};
+    for (instance in wordList) {
+        var words = instance.words,
+            label = instance.label;
+        for (word in words) {
+            if (word in calcWordAccuriesMap) {
+                if (label) {
+                    calcWordAccuriesMap[word][1] = calcWordAccuriesMap[word][1] + 1;
+                } else {
+                    calcWordAccuriesMap[word][0] = calcWordAccuriesMap[word][0] + 1;
+                }
+            } else {
+                if (label) {
+                    calcWordAccuriesMap[word] = { 1 : 1, 0 : 0};
+                } else {
+                    calcWordAccuriesMap[word] = { 1 : 0, 0 : 1};
+                } 
+            }
+        }
+    }
+    for (word in calcWordAccuriesMap) {
+
+    }
+    return calcWordAccuriesMap;
+}
+
+function selectFeaturesWithHighesAccuracy(trainDocWordLists, testDocWordLists, calcWordAccuriesMap) {
+    var trainFeatureVectors,
+        testFeatureVectors;
+
 }
 
 // Bedeutung der regex
@@ -172,14 +206,14 @@ function stemAndStop(documents){
     return result;
 }
 
-function selectTestTrainRandom(docWordLists, seed){
+function selectTestTrainRandom(docWordLists, trainPerc){
     var resTrain = Array();
     var resTest = Array();
     
     var shuffled = shuffle(docWordLists);
     
-    for(var i=0; i<docWordLists.length; i++){
-        if(i<(docWordLists.length/2)){
+    for(var i=0; i< docWordLists.length; i++){
+        if(i<(docWordLists.length * trainPerc)){
             resTrain.push(docWordLists[i]);
         } else{
             resTest.push(docWordLists[i]);
@@ -405,20 +439,20 @@ function saveSparseDs(trainFeatureVectors, testFeatureVectors, n){
         //testWriteStream.write("\n");
     });
     if (instruction) {
-        fs.writeFile(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME + "-instruction-" + n + ".ds", trainingFileString, function (err) {
+        fs.writeFile(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME + "-instruction-" + n + '-' + trainPerc + ".ds", trainingFileString, function (err) {
             if (err) throw err;
             console.log('It\'s saved!');
         });   
-        fs.writeFile(path.join(__dirname, '../classifier/data/') + TEST_DATA_FILE_NAME + "-instruction-" + n + ".ds", testFileString, function (err) {
+        fs.writeFile(path.join(__dirname, '../classifier/data/') + TEST_DATA_FILE_NAME + "-instruction-" + n + '-' + trainPerc + ".ds", testFileString, function (err) {
             if (err) throw err;
             console.log('It\'s saved!');
         });   
     } else {
-        fs.writeFile(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME + "-" + n + ".ds", trainingFileString, function (err) {
+        fs.writeFile(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME + "-" + n + '-' + trainPerc + ".ds", trainingFileString, function (err) {
             if (err) throw err;
             console.log('It\'s saved!');
         });   
-        fs.writeFile(path.join(__dirname, '../classifier/data/') + TEST_DATA_FILE_NAME + "-" + n + ".ds", testFileString, function (err) {
+        fs.writeFile(path.join(__dirname, '../classifier/data/') + TEST_DATA_FILE_NAME + "-" + n + '-' + trainPerc + ".ds", testFileString, function (err) {
             if (err) throw err;
             console.log('It\'s saved!');
         });   
@@ -481,20 +515,20 @@ function saveSparseArff(trainFeatureVectors, testFeatureVectors, n){
         testFileString+='}\n';
     });
     if(instruction) {
-        fs.writeFile(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME + "-instruction-" + n + ".arff", headerString + trainingFileString, function (err) {
+        fs.writeFile(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME + "-instruction-" + n + '-' + trainPerc + ".arff", headerString + trainingFileString, function (err) {
             if (err) throw err;
             console.log('It\'s saved!');
         });   
-        fs.writeFile(path.join(__dirname, '../classifier/data/') + TEST_DATA_FILE_NAME + "-instruction-" + n + ".arff", headerString + testFileString, function (err) {
+        fs.writeFile(path.join(__dirname, '../classifier/data/') + TEST_DATA_FILE_NAME + "-instruction-" + n + '-' + trainPerc + ".arff", headerString + testFileString, function (err) {
             if (err) throw err;
             console.log('It\'s saved!');
         });   
     } else {
-        fs.writeFile(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME + "-" + n + ".arff", headerString + trainingFileString, function (err) {
+        fs.writeFile(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME + "-" + n + '-' + trainPerc + ".arff", headerString + trainingFileString, function (err) {
             if (err) throw err;
             console.log('It\'s saved!');
         });   
-        fs.writeFile(path.join(__dirname, '../classifier/data/') + TEST_DATA_FILE_NAME + "-" + n + ".arff", headerString + testFileString, function (err) {
+        fs.writeFile(path.join(__dirname, '../classifier/data/') + TEST_DATA_FILE_NAME + "-" + n + '-' + trainPerc + ".arff", headerString + testFileString, function (err) {
             if (err) throw err;
             console.log('It\'s saved!');
         }); 

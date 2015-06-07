@@ -16,9 +16,9 @@ function prepareFiles(n) {
 }
 
 function ex31() {
-	textkit.prepareDocuments(1000, false, function(err, succ) {
+	textkit.prepareDocuments(1000, true, function(err, succ) {
 		if(err) throw err;
-    	svm.startSVMClassifier(1000,50,false,'ex3.1.txt');
+    	//svm.startSVMClassifier(1000,50,false,'ex3.1.txt');
     });
 }
 
@@ -35,6 +35,6 @@ function ex2() {
 }
 
 //ex2();
-//ex31();
-ex32();
+ex31();
+//ex32();
 //ex33();

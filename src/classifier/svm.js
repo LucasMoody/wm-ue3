@@ -32,7 +32,7 @@ exports.startSVMClassifier = function(n, costs, probability, resultFileName) {
             gamma : 0.0,
             //actually it is not needed because we do not use EPSILON_SVR
             epsilon : 0.1,
-            normalize : false,
+            normalize : true,
             //actually it is not needed because we do not use NU_SVR
             nu : 0.5,
             shrinking : true

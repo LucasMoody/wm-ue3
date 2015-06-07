@@ -11,7 +11,8 @@ var snowball = require('node-snowball'),
     cheerio = require('cheerio'),   
     seedrandom = require('seedrandom'),
     loggerStream,
-    logging = false;
+    logging = false,
+    instruction = false;
 
 
 exports.prepareDocuments = function(n, onlyInstruction, callback, loggingOn){
@@ -28,6 +29,7 @@ exports.prepareDocuments = function(n, onlyInstruction, callback, loggingOn){
             // [{text:"the peter pan", label:TRUE}, {text:...}]
             var documents;
             if (onlyInstruction) {
+                instruction = true;
                 console.log('Use only recipe instruction text...');
                 documents = getRecipeDivText(res); //alternativ
             } else {
@@ -402,14 +404,25 @@ function saveSparseDs(trainFeatureVectors, testFeatureVectors, n){
         testFileString+='\n';
         //testWriteStream.write("\n");
     });
-    fs.writeFile(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME + "-" + n + ".ds", trainingFileString, function (err) {
-        if (err) throw err;
-        console.log('It\'s saved!');
-    });   
-    fs.writeFile(path.join(__dirname, '../classifier/data/') + TEST_DATA_FILE_NAME + "-" + n + ".ds", testFileString, function (err) {
-        if (err) throw err;
-        console.log('It\'s saved!');
-    });   
+    if (instruction) {
+        fs.writeFile(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME + "-instruction-" + n + ".ds", trainingFileString, function (err) {
+            if (err) throw err;
+            console.log('It\'s saved!');
+        });   
+        fs.writeFile(path.join(__dirname, '../classifier/data/') + TEST_DATA_FILE_NAME + "-instruction-" + n + ".ds", testFileString, function (err) {
+            if (err) throw err;
+            console.log('It\'s saved!');
+        });   
+    } else {
+        fs.writeFile(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME + "-" + n + ".ds", trainingFileString, function (err) {
+            if (err) throw err;
+            console.log('It\'s saved!');
+        });   
+        fs.writeFile(path.join(__dirname, '../classifier/data/') + TEST_DATA_FILE_NAME + "-" + n + ".ds", testFileString, function (err) {
+            if (err) throw err;
+            console.log('It\'s saved!');
+        });   
+    }
 //    trainingWriteStream.end();
 //    testWriteStream.end();
     
@@ -467,15 +480,25 @@ function saveSparseArff(trainFeatureVectors, testFeatureVectors, n){
         }
         testFileString+='}\n';
     });
-
-    fs.writeFile(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME + "-" + n + ".arff", headerString + trainingFileString, function (err) {
-        if (err) throw err;
-        console.log('It\'s saved!');
-    });   
-    fs.writeFile(path.join(__dirname, '../classifier/data/') + TEST_DATA_FILE_NAME + "-" + n + ".arff", headerString + testFileString, function (err) {
-        if (err) throw err;
-        console.log('It\'s saved!');
-    });   
+    if(instruction) {
+        fs.writeFile(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME + "-instruction-" + n + ".arff", headerString + trainingFileString, function (err) {
+            if (err) throw err;
+            console.log('It\'s saved!');
+        });   
+        fs.writeFile(path.join(__dirname, '../classifier/data/') + TEST_DATA_FILE_NAME + "-instruction-" + n + ".arff", headerString + testFileString, function (err) {
+            if (err) throw err;
+            console.log('It\'s saved!');
+        });   
+    } else {
+        fs.writeFile(path.join(__dirname, '../classifier/data/') + TRAINING_DATA_FILE_NAME + "-" + n + ".arff", headerString + trainingFileString, function (err) {
+            if (err) throw err;
+            console.log('It\'s saved!');
+        });   
+        fs.writeFile(path.join(__dirname, '../classifier/data/') + TEST_DATA_FILE_NAME + "-" + n + ".arff", headerString + testFileString, function (err) {
+            if (err) throw err;
+            console.log('It\'s saved!');
+        }); 
+    }
 //    trainingWriteStream.end();
 //    testWriteStream.end();
     
